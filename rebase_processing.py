@@ -88,6 +88,38 @@ def separateHMMs(hmm_profile):
     # Not done
 
 
+def hmmer2Align(input_fasta, hmm_profile, output_aln):
+    '''Aligns a fasta and hmm profile (originally in hmmer3) with hmmer2.'''
+    # Convert the profile to hmmer2 format.
+    hmm2_profile = hmm_profile+'.2'
+    hmm2_profile_file = open(hmm2_profile, 'w')
+    #hmmoutput = subprocess.run(['ls', '-l'], stdout=PIPE).stdout.splitlines()
+    hmmconvert_command = ['hmmconvert', '-2', hmm_profile]
+    hmmconvert_process = subprocess.Popen(hmmconvert_command,
+                        stdout = hmm2_profile_file)
+    hmmconvert_out, _ = hmmconvert_process.communicate()
+    hmmconvert_process.wait()
+    hmm2_profile_file.close()
+
+    # Align with hmmer2.
+    hmm2align_command = ['/Users/liam/Applications/hmmer-2.3.2/src/hmmalign',
+                        '-o', output_aln,
+                        hmm2_profile,
+                        input_fasta]
+    hmm2align_process = subprocess.Popen(hmm2align_command,
+                        stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+    hmm2align_out, _ = hmm2align_process.communicate()
+    hmm2align_process.wait()
+    return
+
+def fetchHMMs(hmm_file):
+    '''Fetches all HMMs out of a profile.'''
+    hmmfetch_command = ['hmmfetch',
+                        '-o', output_aln,
+                        hmm2_profile,
+                        input_fasta]
+
+
 def prepREBASE(input_fasta, hmm_profile, hmm, dir):
     '''Preps a fasta for a given HMM profile, matching each protein in the
     input to its top family hit and writing them to a separate file.
@@ -112,7 +144,10 @@ def prepREBASE(input_fasta, hmm_profile, hmm, dir):
         # Fetch the sequences out for that family
         rebase_subset = extractHitsFasta(input_fasta, hmm_search_results, family=fam)
         print(rebase_subset)
-        with open(dir+'/'+hmm+'.'+fam+'.fa', 'w') as f:
+        subset_file_str = dir+'/'+hmm+'.'+fam+'.fa'
+        with open(subset_file_str, 'w') as f:
             for id in rebase_subset:
                 f.write('>%s\n%s\n' % (id, str(rebase_subset[id].seq)))
+        # Then align these sequences
+        hmmer2Align(subset_file_str, )
     return
