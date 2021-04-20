@@ -55,7 +55,16 @@ def createMSA(input_fasta, reference_fasta, hmm_file, family, msa_output):
         return(0)
 
 def getPID(a, b):
-    '''% identity for two protein strings a and b.'''
+    '''% identity for two protein strings a and b.
+
+    Args:
+        a, b (str)
+            Both protein strings (although could be any character string).
+
+    Returns:
+        pid (float)
+            Percentage identity of a,b.
+    '''
     n_identical = len([x for x in zip(a, b) if x[0]==x[1] and x[0]!='-'])
     min_length = min(len([x for x in a if x!='-']),
                     len([x for x in b if x!='-']))
@@ -63,7 +72,21 @@ def getPID(a, b):
     return(pid)
 
 def getTopMatch(query, msa_file, msa_format='stockholm'):
-    '''Returns top match (by pairwise similarity) for a protein in a MSA.'''
+    '''Returns top match (by pairwise similarity) for a protein in a MSA.
+
+    Args:
+        query (str)
+            Name of protein.
+        msa_file (str)
+            Filename of MSA (which query must be within).
+        (opt) msa_format (str)
+            Format of MSA. Default is Stockholm since this is hmmer's default.
+
+    Returns:
+        top_hits (dict)
+            Dict of top hit(s).
+            (could be tweaked)
+    '''
     print('Finding match for', query, 'in', msa_file)
     msa = SeqIO.to_dict(SeqIO.parse(msa_file, format=msa_format))
     query_seq = str(msa[query].seq)
@@ -72,7 +95,8 @@ def getTopMatch(query, msa_file, msa_format='stockholm'):
         if seq!=query:
             hit_dict[seq] = getPID(str(msa[seq].seq), query_seq)
     max_value = max(hit_dict.values())
-    return({k:v for k, v in hit_dict.items() if v==max_value})
+    top_hits = {k:v for k, v in hit_dict.items() if v==max_value}
+    return(top_hits)
 
 
 def hmmer2AlignToReference(input_fasta, reference_msa, hmm_profile, output_aln):
