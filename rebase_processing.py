@@ -35,7 +35,7 @@ def extractSequences(input, enzyme_type, output_file):
                         pass
                     elif RecSeqFlag==True:
                         output.write('%s\n' % line)
-        print(i, seqs) 
+        print(i, seqs)
 
 
 def searchHMM(query_protein_file, hmm_file):
@@ -67,7 +67,7 @@ def searchHMM(query_protein_file, hmm_file):
                 line = line.split()
                 if line[0] in df.keys():
                      # if E-value of hit is lower than existing entry, replace
-                    if line[4] < df[line[0]][3]:
+                    if float(line[4]) < float(df[line[0]][3]):
                         df[line[0]] = line[1:]
                     else: # otherwise no (keep top hit)
                         pass
