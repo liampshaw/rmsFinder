@@ -8,6 +8,36 @@ from Bio import SeqIO
 import re
 
 
+def extractSequences(input, enzyme_type, output_file):
+    '''Extracts sequences with known RS and enzyme type.'''
+    RecSeqFlag = False # Bool to track if sequence has known sequence
+    i = 0; seqs = 0 # Counters
+    with open(output_file, 'w') as output:
+        with open(input_file, 'r') as f:
+            for line in f.readlines():
+                line = line.strip('\n')
+                line = re.sub('<>', '', line)
+                if line.startswith('>'):
+                    i += 1
+                    if 'RecSeq' in line and enzyme_type in line:# (and 'putative' not in line) if want only non-putative
+                        seqs += 1
+                        RecSeqFlag = True
+                        # Check if bracket in line - there are 28 of these - and add underscore (duplicate names otherwise) e.g. REBASE:M.Kpn440ORF27725P (M.Kpn440ORF27725BP) and REBASE:M.Kpn440ORF27725P (M.Kpn440ORF27725AP)
+                        if '(' in line:
+                            line = re.sub(' \\(', '_(', line)
+                        output.write('%s\n' % line)
+                    else:
+                        RecSeqFlag = False
+                else:
+                    if line.startswith('<>'):
+                        pass
+                    elif line=='':
+                        pass
+                    elif RecSeqFlag==True:
+                        output.write('%s\n' % line)
+        print(i, seqs)
+
+
 def searchHMM(query_protein_file, hmm_file):
     '''Searches a proteome against a specified hmm file.
 
@@ -113,7 +143,7 @@ def hmmer2Align(input_fasta, hmm_profile, output_aln):
     hmm2align_process.wait()
     return
 
-def fetchHMMs(hmm_file):
+def fetchHMMs(hmm_file, out_dir):
     '''Fetches all HMMs out of a profile.'''
     fam_file_str = 'tmp.fams'
     with open(fam_file_str, 'w') as fam_file:
@@ -129,14 +159,24 @@ def fetchHMMs(hmm_file):
             else:
                 families.append(line.split()[1]) # append family
     for fam in families:
-        fam_hmm_file = re.sub('hmm', '', hmm_file)+fam+'.hmm'
+        fam_hmm_file = out_dir+'/'+re.sub('.*\/', '', re.sub('hmm', '', hmm_file))+fam+'.hmm'
         hmmfetch_command = ['hmmfetch',
                             '-o', fam_hmm_file,
                             hmm_file, fam]
         hmmfetch_process = subprocess.Popen(hmmfetch_command,
                             stdout = subprocess.PIPE, stderr = subprocess.PIPE)
         hmmfetch_out, _ = hmmfetch_process.communicate()
-        print('Fetched profile for', fam)
+        # Convert to hmm2
+        hmm2_profile = fam_hmm_file+'.2'
+        hmm2_profile_file = open(hmm2_profile, 'w')
+        #hmmoutput = subprocess.run(['ls', '-l'], stdout=PIPE).stdout.splitlines()
+        hmmconvert_command = ['hmmconvert', '-2', fam_hmm_file]
+        hmmconvert_process = subprocess.Popen(hmmconvert_command,
+                            stdout = hmm2_profile_file)
+        hmmconvert_out, _ = hmmconvert_process.communicate()
+        hmmconvert_process.wait()
+        hmm2_profile_file.close()
+        print('Fetched profile for', fam, 'and wrote to', fam_hmm_file, 'and', hmm2_profile)
     return
 
 def prepREBASE(input_fasta, hmm_profile, hmm, dir):
@@ -160,7 +200,7 @@ def prepREBASE(input_fasta, hmm_profile, hmm, dir):
         os.makedirs(dir)
 
     # Fetch HMMs out of main profile
-    fetchHMMs(hmm_profile)
+    fetchHMMs(hmm_profile, dir)
     # Search HMM
     hmm_search_results = searchHMM(input_fasta, hmm_profile)
     families = list(set([hmm_search_results[k][1]
@@ -171,12 +211,12 @@ def prepREBASE(input_fasta, hmm_profile, hmm, dir):
         # Fetch the sequences out for that family
         rebase_subset = extractHitsFasta(input_fasta, hmm_search_results,
                                         family=fam)
-        print(rebase_subset)
         subset_file_str = dir+'/'+hmm+'.'+fam+'.fa'
         with open(subset_file_str, 'w') as f:
             for id in rebase_subset:
                 f.write('>%s\n%s\n' % (id, str(rebase_subset[id].seq)))
         # Then align these sequences
-        family_hmm = re.sub('hmm', '', hmm_profile)+fam+'.hmm'
+        family_hmm = dir+'/'+hmm+fam+'.hmm'
+        print(family_hmm)
         hmmer2Align(subset_file_str, family_hmm, subset_file_str+'.aln')
     return
