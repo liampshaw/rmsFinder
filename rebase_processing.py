@@ -216,7 +216,7 @@ def prepREBASE(input_fasta, hmm_profile, hmm, dir):
             for id in rebase_subset:
                 f.write('>%s\n%s\n' % (id, str(rebase_subset[id].seq)))
         # Then align these sequences
-        family_hmm = dir+'/'+hmm+fam+'.hmm'
+        family_hmm = dir+'/'+hmm+'.'+fam+'.hmm'
         print(family_hmm)
         hmmer2Align(subset_file_str, family_hmm, subset_file_str+'.aln')
     return
