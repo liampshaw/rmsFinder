@@ -5,6 +5,7 @@
 import subprocess
 import os
 from Bio import SeqIO
+import re
 
 
 def searchHMM(query_protein_file, hmm_file):
@@ -114,11 +115,29 @@ def hmmer2Align(input_fasta, hmm_profile, output_aln):
 
 def fetchHMMs(hmm_file):
     '''Fetches all HMMs out of a profile.'''
-    hmmfetch_command = ['hmmfetch',
-                        '-o', output_aln,
-                        hmm2_profile,
-                        input_fasta]
-
+    fam_file_str = 'tmp.fams'
+    with open(fam_file_str, 'w') as fam_file:
+        hmmstat_command = ['hmmstat', hmm_file]
+        hmmstat_process = subprocess.Popen(hmmstat_command,
+                            stdout = fam_file)
+        hmmstat_process.wait()
+    families = []
+    with open(fam_file_str, 'r') as fam_file:
+        for line in fam_file.readlines():
+            if line.startswith('#'):
+                pass
+            else:
+                families.append(line.split()[1]) # append family
+    for fam in families:
+        fam_hmm_file = re.sub('hmm', '', hmm_file)+fam+'.hmm'
+        hmmfetch_command = ['hmmfetch',
+                            '-o', fam_hmm_file,
+                            hmm_file, fam]
+        hmmfetch_process = subprocess.Popen(hmmfetch_command,
+                            stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        hmmfetch_out, _ = hmmfetch_process.communicate()
+        print('Fetched profile for', fam)
+    return
 
 def prepREBASE(input_fasta, hmm_profile, hmm, dir):
     '''Preps a fasta for a given HMM profile, matching each protein in the
@@ -137,17 +156,27 @@ def prepREBASE(input_fasta, hmm_profile, hmm, dir):
     Returns:
         None
     '''
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+    # Fetch HMMs out of main profile
+    fetchHMMs(hmm_profile)
+    # Search HMM
     hmm_search_results = searchHMM(input_fasta, hmm_profile)
-    families = list(set([hmm_search_results[k][1] for k in hmm_search_results.keys()]))
+    families = list(set([hmm_search_results[k][1]
+                        for k in hmm_search_results.keys()]))
     for fam in families:
+        print(fam)
         # Fetch the family HMM out
         # Fetch the sequences out for that family
-        rebase_subset = extractHitsFasta(input_fasta, hmm_search_results, family=fam)
+        rebase_subset = extractHitsFasta(input_fasta, hmm_search_results,
+                                        family=fam)
         print(rebase_subset)
         subset_file_str = dir+'/'+hmm+'.'+fam+'.fa'
         with open(subset_file_str, 'w') as f:
             for id in rebase_subset:
                 f.write('>%s\n%s\n' % (id, str(rebase_subset[id].seq)))
         # Then align these sequences
-        hmmer2Align(subset_file_str, )
+        family_hmm = re.sub('hmm', '', hmm_profile)+fam+'.hmm'
+        hmmer2Align(subset_file_str, family_hmm, subset_file_str+'.aln')
     return
