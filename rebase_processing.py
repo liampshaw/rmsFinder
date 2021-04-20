@@ -35,7 +35,7 @@ def extractSequences(input, enzyme_type, output_file):
                         pass
                     elif RecSeqFlag==True:
                         output.write('%s\n' % line)
-        print(i, seqs)
+        print(i, seqs) 
 
 
 def searchHMM(query_protein_file, hmm_file):
