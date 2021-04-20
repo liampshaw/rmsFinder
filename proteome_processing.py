@@ -127,14 +127,14 @@ def hmmer2AlignToReference(input_fasta, reference_msa, hmm_profile, output_aln):
     #print(hmm2align_out)
     return
 
-def getMSAs(proteome_fasta, hits, hmm, hmm_file, msa_dir):
-    '''Gets all MSAs for a proteome dict.
+def getHits(proteome_fasta, hits, hmm, hmm_file, msa_dir):
+    '''Returns the top hits for each protein.
 
     Args:
         proteome_fasta (str)
             Filename of fasta file with proteins in.
         hits (dict)
-            The best hit for each protein from hmmsearch.
+            The best family match for each protein from hmmsearch.
         hmm (str)
             The name of the hmm profile.
         hmm_file (str)
@@ -143,12 +143,14 @@ def getMSAs(proteome_fasta, hits, hmm, hmm_file, msa_dir):
             Directory to save output to.
 
     Returns:
-        None
+        results_dict (dict)
+            Dict of hits (themselves dicts)
     '''
     proteome = SeqIO.to_dict(SeqIO.parse(proteome_fasta, 'fasta'))
     # Take the unique families
     families = list(set([h[1] for h in hits.values()]))
     print(families)
+    results_dict = {}
     for fam in families:
         tmp_fasta = 'tmp_'+fam+'.fa' # Open tmp fasta and write sequences to it
         proteins_of_interest = []
@@ -166,5 +168,15 @@ def getMSAs(proteome_fasta, hits, hmm, hmm_file, msa_dir):
         for prot in proteins_of_interest:
             print()
             print(prot)
-            print(str(proteome[prot].seq))
-            print(getTopMatch(prot, tmp_aln))
+            match = getTopMatch(prot, tmp_aln)
+            print(match)
+            results_dict[prot] = [fam, match]
+    return results_dict
+
+def getRS(query, fasta_file):
+    '''Returns the RecSeq for a query in a (REBASE) fasta file.'''
+    seqs = SeqIO.to_dict(SeqIO.parse(fasta_file, 'fasta'))
+    description_query = seqs[query].description.split('\t')
+    rec_seq = [x for x in description_query if 'RecSeq' in x][0]
+    rec_seq = rec_seq.split(':')[1]
+    return(rec_seq)
