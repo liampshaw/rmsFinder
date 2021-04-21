@@ -244,15 +244,20 @@ def prepREBASE(input_fasta, hmm_profile, hmm, dir):
         os.makedirs(dir)
 
     # Fetch HMMs out of main profile
+    print('\nFetching family HMMs from profile provided...')
     fetchHMMs(hmm_profile, dir)
+    print('Done!')
+
     # Search HMM
+    print('\nSearching through using the HMMs provided...')
     hmm_search_results = searchHMM(input_fasta, hmm_profile)
+    print('Done!')
     families = list(set([hmm_search_results[k][1]
                         for k in hmm_search_results.keys()]))
     for fam in families:
-        print(fam)
         # Fetch the family HMM out
         # Fetch the sequences out for that family
+        print('\nExtracting hits from HMM family', fam, '...')
         rebase_subset = extractHitsFasta(input_fasta, hmm_search_results,
                                         family=fam)
         subset_file_str = dir+'/'+hmm+'.'+fam+'.fa'
@@ -261,6 +266,9 @@ def prepREBASE(input_fasta, hmm_profile, hmm, dir):
                 f.write('>%s\n%s\n' % (id, str(rebase_subset[id].seq)))
         # Then align these sequences
         family_hmm = dir+'/'+hmm+'.'+fam+'.hmm'
-        print(family_hmm)
+        print('Aligning the hits with hmmer2...')
         hmmer2Align(subset_file_str, family_hmm, subset_file_str+'.aln')
+        print('Done!')
+
+    print('\nAll done. Prepped files written to', dir)
     return
