@@ -110,17 +110,20 @@ def extractHitsFasta(input_fasta, stored_hmm_search_results, family='all'):
     return proteome_seqs_subset
 
 
-def separateHMMs(hmm_profile):
-    '''Fetches all profiles from a HMM profile.'''
-    hmmsearch_command = ['hmmsearch', '--noali', '--tblout', tmp_file,
-                        hmm_file, query_protein_file]
-    hmmsearch_process = subprocess.Popen(hmmsearch_command,
-                        stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-    # Not done
-
-
 def hmmer2Align(input_fasta, hmm_profile, output_aln):
-    '''Aligns a fasta and hmm profile (originally in hmmer3) with hmmer2.'''
+    '''Aligns a fasta and hmm profile (originally in hmmer3) with hmmer2.
+
+    Args:
+        input_fasta (str)
+            Filename of input fasta
+        hmm_profile (str)
+            Filename of input hmm profile (hmmer3 format)
+        output_aln (str)
+            Filename of output file
+
+    Returns:
+        None
+    '''
     # Convert the profile to hmmer2 format.
     hmm2_profile = hmm_profile+'.2'
     hmm2_profile_file = open(hmm2_profile, 'w')
@@ -141,6 +144,31 @@ def hmmer2Align(input_fasta, hmm_profile, output_aln):
                         stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     hmm2align_out, _ = hmm2align_process.communicate()
     hmm2align_process.wait()
+    return
+
+def hmmer3Align(input_fasta, hmm_profile, output_aln):
+    '''Aligns a fasta and hmm profile with hmmer3.
+
+    Args:
+        input_fasta (str)
+            Filename of input fasta
+        hmm_profile (str)
+            Filename of input hmm profile (hmmer3 format)
+        output_aln (str)
+            Filename of output file
+
+    Returns:
+        None
+    '''
+    # Align with hmmer3.
+    hmmalign_command = ['hmmalign',
+                        '-o', output_aln,
+                        hmm_profile,
+                        input_fasta]
+    hmmalign_process = subprocess.Popen(hmmalign_command,
+                        stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+    hmmalign_out, _ = hmmalign_process.communicate()
+    hmmalign_process.wait()
     return
 
 def fetchHMMs(hmm_file, out_dir):
