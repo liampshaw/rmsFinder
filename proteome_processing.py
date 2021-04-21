@@ -89,7 +89,7 @@ def getTopMatch(query, msa_file, msa_format='stockholm', match='REBASE'):
             Dict of top hit(s).
             (could be tweaked)
     '''
-    print('Finding match for', query, 'in', msa_file)
+    #print('Finding match for', query, 'in', msa_file)
     msa = SeqIO.to_dict(SeqIO.parse(msa_file, format=msa_format))
     query_seq = str(msa[query].seq)
     hit_dict = dict()
@@ -174,9 +174,9 @@ def getHits(proteome_fasta, hits, hmm, hmm_file, msa_dir):
             break
         for prot in proteins_of_interest:
             print()
-            print(prot)
+            #print(prot)
             match = getTopMatch(prot, tmp_aln)
-            print(match)
+            #print(match)
             results_dict[prot] = [fam, match]
     return results_dict
 
