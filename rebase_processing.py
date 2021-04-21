@@ -8,21 +8,35 @@ from Bio import SeqIO
 import re
 
 
-def extractSequences(input, enzyme_type, output_file):
-    '''Extracts sequences with known RS and enzyme type.'''
+def extractSequences(rebase_proteins, enzyme_type, output_file):
+    '''Extracts sequences with known RS and enzyme type.
+
+    Args:
+        rebase_proteins (str)
+            Filename of input fasta (downloaded from REBASE: protein_seqs.txt)
+        enzyme_type (str)
+            Name of desired enzyme type to extract e.g. Type I methytransferase
+        output_file (str)
+            Filename of output fasta file
+
+    Returns:
+        None
+    '''
     RecSeqFlag = False # Bool to track if sequence has known sequence
     i = 0; seqs = 0 # Counters
     with open(output_file, 'w') as output:
-        with open(input_file, 'r') as f:
+        with open(rebase_proteins, 'r') as f:
             for line in f.readlines():
                 line = line.strip('\n')
                 line = re.sub('<>', '', line)
                 if line.startswith('>'):
                     i += 1
-                    if 'RecSeq' in line and enzyme_type in line:# (and 'putative' not in line) if want only non-putative
+                    if 'RecSeq' in line and enzyme_type in line:
+                        #if want only non-putative: 'and 'putative' not in line
                         seqs += 1
                         RecSeqFlag = True
-                        # Check if bracket in line - there are 28 of these - and add underscore (duplicate names otherwise) e.g. REBASE:M.Kpn440ORF27725P (M.Kpn440ORF27725BP) and REBASE:M.Kpn440ORF27725P (M.Kpn440ORF27725AP)
+                        # Check if bracket in line and add underscore
+                        # to avoid duplicate lines
                         if '(' in line:
                             line = re.sub(' \\(', '_(', line)
                         output.write('%s\n' % line)
@@ -36,6 +50,7 @@ def extractSequences(input, enzyme_type, output_file):
                     elif RecSeqFlag==True:
                         output.write('%s\n' % line)
         print(i, seqs)
+    return
 
 
 def searchHMM(query_protein_file, hmm_file):
