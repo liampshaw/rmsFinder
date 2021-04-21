@@ -71,7 +71,7 @@ def getPID(a, b):
     pid = float(n_identical)/float(min_length) * 100.0
     return(pid)
 
-def getTopMatch(query, msa_file, msa_format='stockholm'):
+def getTopMatch(query, msa_file, msa_format='stockholm', match='REBASE'):
     '''Returns top match (by pairwise similarity) for a protein in a MSA.
 
     Args:
@@ -81,6 +81,8 @@ def getTopMatch(query, msa_file, msa_format='stockholm'):
             Filename of MSA (which query must be within).
         (opt) msa_format (str)
             Format of MSA. Default is Stockholm since this is hmmer's default.
+        (opt) match (str)
+            String which starts legitimate matches.
 
     Returns:
         top_hits (dict)
@@ -94,8 +96,9 @@ def getTopMatch(query, msa_file, msa_format='stockholm'):
     for seq in msa.keys():
         if seq!=query:
             hit_dict[seq] = getPID(str(msa[seq].seq), query_seq)
-    max_value = max(hit_dict.values())
-    top_hits = {k:v for k, v in hit_dict.items() if v==max_value}
+    hit_dict_2 = {k:v for k, v in hit_dict.items() if k.startswith(match)}
+    max_value = max(hit_dict_2.values())
+    top_hits = {k:v for k, v in hit_dict_2.items() if v==max_value}
     return(top_hits)
 
 
@@ -163,8 +166,12 @@ def getHits(proteome_fasta, hits, hmm, hmm_file, msa_dir):
         reference_aln = msa_dir+'/'+hmm+'.'+fam+'.fa.aln'
         reference_hmm = msa_dir+'/'+hmm+'.'+fam+'.hmm.2'
         #print(reference_aln)
-        hmmer2AlignToReference(tmp_fasta, reference_aln,
+        if os.path.isfile(reference_aln):
+            hmmer2AlignToReference(tmp_fasta, reference_aln,
                             reference_hmm, tmp_aln)
+        else:
+            print('No reference alignment available...!')
+            break
         for prot in proteins_of_interest:
             print()
             print(prot)
