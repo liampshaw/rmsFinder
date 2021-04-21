@@ -49,7 +49,8 @@ def extractSequences(rebase_proteins, enzyme_type, output_file):
                         pass
                     elif RecSeqFlag==True:
                         output.write('%s\n' % line)
-        print('Out of', i, 'total sequences, extracted', seqs, enzyme_type)
+        print('Found', i, 'total sequences.\n Of which', seqs, 'matched',
+             enzyme_type)
     return
 
 
