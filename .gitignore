@@ -3,4 +3,7 @@ __pycache__
 *.aln
 tmp*
 sandbox.py
-
+*csv
+*txt
+to-do
+example-genome.py

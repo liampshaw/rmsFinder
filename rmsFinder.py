@@ -274,7 +274,7 @@ def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta, evalue_threshold=
         evalue_threshold (float)
             Threshold to filter blast hits at. Default: 0.001 as in Oliveira 2016
         coverage_threshold (float)
-            Threshold of coverage. Default: 0.5 (i.e. 50%() as in Oliveira 2016
+            Threshold of coverage. Default: 0.5 (i.e. 50%) as in Oliveira 2016
     Returns:
         blast_hits_collapse (DataFrame)
             DataFrame of best hits, one row per protein
@@ -302,13 +302,11 @@ def main():
     output = args.output
 
     MT_hits = searchMTasesTypeII(proteome_fasta, cds_fasta)
+    MT_hits.to_csv(output+'_MT.csv', index=False)
     print('Finished searching for MTases.')
     RE_hits = searchREasesTypeII(proteome_fasta, cds_fasta)
+    RE_hits.to_csv(output+'_RE.csv', index=False)
     print('Finished searching for REases.')
-
-    # Write to file
-    pd.to_csv(MT_hits, file=output+'_MT.txt')
-    pd.to_csv(RE_hits, file=output+'_RE.txt')
 
 if __name__ == "__main__":
     main()
