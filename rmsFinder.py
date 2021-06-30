@@ -5,13 +5,22 @@ import re
 import subprocess
 import os
 import numpy as np
+import argparse
 
 def get_options():
     parser = argparse.ArgumentParser(description='Predict presence of Type II restriction-modification systems in a genome.',
                                      prog='rmsFinder')
-    parser.add_argument('--fasta', help='Fasta file') # either f or l, but not both
+    parser.add_argument('--fasta', help='Fasta file (protein)')
+    parser.add_argument('--cdsfasta', help='Fasta file of CDS (nucleotide)')
     parser.add_argument('--output', help='Output prefix', required=True)
     return parser.parse_args()
+
+
+_ROOT = os.path.abspath(os.path.dirname(__file__))
+def get_data(path):
+    '''Returns the absolute path for a data file.'''
+    return os.path.join(_ROOT, 'data', path)
+
 
 def searchHMM(query_protein_file, hmm_file):
     '''Searches a proteome against a specified hmm file.
@@ -213,9 +222,93 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5):
     else:
         return(None)
 
+def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta, evalue_threshold=0.001):
+    '''Searches for Type II MTases.
+    Args:
+        proteome_fasta (str)
+            Fasta file of proteins.
+        cds_from_genomic_fasta (str)
+            Fasta file of untranslated nucleotides of cds (contains counter info.)
+        evalue_threshold (float)
+            Threshold to keep hits at.
+
+    Returns:
+        blast_hits_collapse (DataFrame)
+            DataFrame of best hits, collapsed to one row per protein
+    '''
+    # Using Oliveira Type II MTase HMM profiles to search
+    hmm_dict_MT = searchHMM(proteome_fasta, get_data('Type_II_MTases.hmm'))
+
+    # Filter hits
+    hits_MT_filt = {k:v for k,v in hmm_dict_MT.items() if float(v[3])<evalue_threshold}
+
+    # Subset only the hits out from the proteome
+    tmp_fasta = 'tmp_MT.faa'
+    subsetFasta(proteome_fasta, list(hits_MT_filt.keys()), tmp_fasta)
+
+    # Blast these hits against all Type II MTases to find best matches
+    blast_hits_MT = blastpAgainstDB('tmp_MT.faa', get_data('protein_seqs_Type_II_MTases.faa'), db_built=True)
+    # Remove tmp fasta file
+    os.remove(tmp_fasta)
+
+    # Get the recognition sites of the best hits
+    rs_MT = getRS(blast_hits_MT['sseqid'], get_data('protein_seqs_Type_II_MTases.faa'))
+    blast_hits_MT = blast_hits_MT.assign(target=rs_MT)
+
+    # Add the genomic position
+    counter_dict = parseCDSFromGenomic(cds_from_genomic_fasta)
+    blast_hits_MT = blast_hits_MT.assign(position=[counter_dict[x] for x in blast_hits_MT['qseqid']])
+
+    # Collapse the table to best hits
+    blast_hits_collapse = collapseBestHits(blast_hits_MT)
+
+    return(blast_hits_collapse)
+
+def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta, evalue_threshold=0.001, coverage_threshold=0.5):
+    '''Searches a file of proteins against all known REases.
+    Args:
+        proteome_fasta (str)
+            Fasta file with proteins
+        cds_from_genomic_fasta (str)
+            Fasta file of untranslated nucleotides of cds
+        evalue_threshold (float)
+            Threshold to filter blast hits at. Default: 0.001 as in Oliveira 2016
+        coverage_threshold (float)
+            Threshold of coverage. Default: 0.5 (i.e. 50%() as in Oliveira 2016
+    Returns:
+        blast_hits_collapse (DataFrame)
+            DataFrame of best hits, one row per protein
+    '''
+    # Blasting for REases
+    blast_hits_RE = blastpAgainstDB(proteome_fasta, get_data('protein_seqs_Type_II_REases.faa'), db_built=True)
+
+    # Filter out hits
+    blast_hits_RE = blast_hits_RE.assign(coverage_threshold_met=list(blast_hits_RE['length'] > coverage_threshold*blast_hits_RE['qlen'])) # Condition of 50% coverage as in Oliveira 2016
+    blast_hits_RE_filt = blast_hits_RE[blast_hits_RE['coverage_threshold_met']==True]
+    # Add genomic position
+    counter_dict = parseCDSFromGenomic(cds_from_genomic_fasta)
+    blast_hits_RE_filt = blast_hits_RE_filt.assign(position=[counter_dict[x] for x in blast_hits_RE_filt['qseqid']])
+
+    # Add the recognition sequences
+    blast_hits_RE_filt = blast_hits_RE_filt.assign(target=getRS(blast_hits_RE_filt['sseqid'], get_data('protein_seqs_Type_II_REases.faa'))) # add target column
+    # Collapse the table
+    blast_hits_collapse = collapseBestHits(blast_hits_RE_filt)
+    return(blast_hits_collapse)
 
 def main():
     args = get_options()
+    proteome_fasta = args.fasta
+    cds_fasta = args.cdsfasta
+    output = args.output
+
+    MT_hits = searchMTasesTypeII(proteome_fasta, cds_fasta)
+    print('Finished searching for MTases.')
+    RE_hits = searchREasesTypeII(proteome_fasta, cds_fasta)
+    print('Finished searching for REases.')
+
+    # Write to file
+    pd.to_csv(MT_hits, file=output+'_MT.txt')
+    pd.to_csv(RE_hits, file=output+'_RE.txt')
 
 if __name__ == "__main__":
     main()
