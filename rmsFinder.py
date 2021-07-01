@@ -222,7 +222,7 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5):
     else:
         return(None)
 
-def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta, evalue_threshold=0.001):
+def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001):
     '''Searches for Type II MTases.
     Args:
         proteome_fasta (str)
@@ -255,16 +255,17 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta, evalue_threshold=
     rs_MT = getRS(blast_hits_MT['sseqid'], get_data('protein_seqs_Type_II_MTases.faa'))
     blast_hits_MT = blast_hits_MT.assign(target=rs_MT)
 
-    # Add the genomic position
-    counter_dict = parseCDSFromGenomic(cds_from_genomic_fasta)
-    blast_hits_MT = blast_hits_MT.assign(position=[counter_dict[x] for x in blast_hits_MT['qseqid']])
+    # Add genomic position if requested
+    if cds_from_genomic_fasta!=False:
+        counter_dict = parseCDSFromGenomic(cds_from_genomic_fasta)
+        blast_hits_MT = blast_hits_MT.assign(position=[counter_dict[x] for x in blast_hits_MT['qseqid']])
 
     # Collapse the table to best hits
     blast_hits_collapse = collapseBestHits(blast_hits_MT)
 
     return(blast_hits_collapse)
 
-def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta, evalue_threshold=0.001, coverage_threshold=0.5):
+def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5):
     '''Searches a file of proteins against all known REases.
     Args:
         proteome_fasta (str)
@@ -285,9 +286,10 @@ def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta, evalue_threshold=
     # Filter out hits
     blast_hits_RE = blast_hits_RE.assign(coverage_threshold_met=list(blast_hits_RE['length'] > coverage_threshold*blast_hits_RE['qlen'])) # Condition of 50% coverage as in Oliveira 2016
     blast_hits_RE_filt = blast_hits_RE[blast_hits_RE['coverage_threshold_met']==True]
-    # Add genomic position
-    counter_dict = parseCDSFromGenomic(cds_from_genomic_fasta)
-    blast_hits_RE_filt = blast_hits_RE_filt.assign(position=[counter_dict[x] for x in blast_hits_RE_filt['qseqid']])
+    # Add genomic position if requested
+    if cds_from_genomic_fasta!=False:
+        counter_dict = parseCDSFromGenomic(cds_from_genomic_fasta)
+        blast_hits_RE_filt = blast_hits_RE_filt.assign(position=[counter_dict[x] for x in blast_hits_RE_filt['qseqid']])
 
     # Add the recognition sequences
     blast_hits_RE_filt = blast_hits_RE_filt.assign(target=getRS(blast_hits_RE_filt['sseqid'], get_data('protein_seqs_Type_II_REases.faa'))) # add target column
@@ -299,6 +301,8 @@ def main():
     args = get_options()
     proteome_fasta = args.fasta
     cds_fasta = args.cdsfasta
+    if cds_fasta=='F':
+        cds_fasta = False
     output = args.output
 
     MT_hits = searchMTasesTypeII(proteome_fasta, cds_fasta)
@@ -307,6 +311,8 @@ def main():
     RE_hits = searchREasesTypeII(proteome_fasta, cds_fasta)
     RE_hits.to_csv(output+'_RE.csv', index=False)
     print('Finished searching for REases.')
+
+
 
 if __name__ == "__main__":
     main()
