@@ -10,9 +10,11 @@ import argparse
 def get_options():
     parser = argparse.ArgumentParser(description='Predict presence of Type II restriction-modification systems in a genome.',
                                      prog='rmsFinder')
-    parser.add_argument('--fasta', help='Fasta file (protein)')
-    parser.add_argument('--cdsfasta', help='Fasta file of CDS (nucleotide)')
+    input_group = parser.add_mutually_exclusive_group(required=True) # mutually exclusive group
+    input_group.add_argument('--genbank', help='Genbank file') # either genbank or fasta, but not both
+    input_group.add_argument('--fasta', help='Alternatively: a fasta file (protein)')
     parser.add_argument('--output', help='Output prefix', required=True)
+    parser.add_argument('--mode', help='Mode', required=True)
     return parser.parse_args()
 
 
@@ -141,6 +143,18 @@ def blastpAgainstDB(query_fasta, db_fasta, db_built=True, evalue_threshold=0.001
     else:
         return(None)
 
+def parseGenBank(genbank_file, genbank2fasta_output):
+    '''Parses a GenBank file into a fasta of proteins with useful information.'''
+    protein_dict = {}
+    counter = 0
+    with open(genbank2fasta_output, 'w') as f:
+        for record in SeqIO.parse(genbank_file, 'genbank'): # read assumes only one entry
+            for feature in record.features:
+                if feature.type=='CDS':
+                    counter += 1
+                    if 'translation' in feature.qualifiers.keys():
+                        f.write('>%s %s product="%s"\n%s\n' % (feature.qualifiers['protein_id'][0], counter, feature.qualifiers['product'][0], feature.qualifiers['translation'][0]))
+    return
 
 
 def getRS(queries, fasta_file):
@@ -169,6 +183,15 @@ def collapseBestHits(best_hits):
     best_hits_collapse = best_hits_collapse.assign(identicalTarget = [len(set(best_hits[best_hits['qseqid']==x]['target']))==1 for x in best_hits_collapse['qseqid']])
     return(best_hits_collapse)
 
+def parseCounterPreparedFasta(input_fasta):
+    '''Gets counters for fasta prepared from parseGenBank.'''
+    counter_dict = {}
+    for line in open(input_fasta,'r').readlines():
+        if line.startswith('>'):
+            entries = line.split()
+            protein_id = re.sub('>', '', entries[0])
+            counter_dict[protein_id] = int(entries[1])
+    return(counter_dict)
 
 def parseCDSFromGenomic(input_fasta):
     '''Takes a _cds_from_genomic.fna file downloaded from NCBI and produces a dict of the proteins with their locations.
@@ -251,19 +274,22 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
     # Remove tmp fasta file
     os.remove(tmp_fasta)
 
-    # Get the recognition sites of the best hits
-    rs_MT = getRS(blast_hits_MT['sseqid'], get_data('protein_seqs_Type_II_MTases.faa'))
-    blast_hits_MT = blast_hits_MT.assign(target=rs_MT)
+    # If no hits?
+    if blast_hits_MT is None:
+        return
+    else:
+        # Get the recognition sites of the best hits
+        rs_MT = getRS(blast_hits_MT['sseqid'], get_data('protein_seqs_Type_II_MTases.faa'))
+        blast_hits_MT = blast_hits_MT.assign(target=rs_MT)
 
-    # Add genomic position if requested
-    if cds_from_genomic_fasta!=False:
-        counter_dict = parseCDSFromGenomic(cds_from_genomic_fasta)
-        blast_hits_MT = blast_hits_MT.assign(position=[counter_dict[x] for x in blast_hits_MT['qseqid']])
+        # Add genomic position if requested
+        if cds_from_genomic_fasta==True:
+            counter_dict = parseCounterPreparedFasta(proteome_fasta)
+            blast_hits_MT = blast_hits_MT.assign(position=[counter_dict[x] for x in blast_hits_MT['qseqid']])
 
-    # Collapse the table to best hits
-    blast_hits_collapse = collapseBestHits(blast_hits_MT)
-
-    return(blast_hits_collapse)
+        # Collapse the table to best hits
+        blast_hits_collapse = collapseBestHits(blast_hits_MT)
+        return(blast_hits_collapse)
 
 def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5):
     '''Searches a file of proteins against all known REases.
@@ -286,9 +312,11 @@ def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
     # Filter out hits
     blast_hits_RE = blast_hits_RE.assign(coverage_threshold_met=list(blast_hits_RE['length'] > coverage_threshold*blast_hits_RE['qlen'])) # Condition of 50% coverage as in Oliveira 2016
     blast_hits_RE_filt = blast_hits_RE[blast_hits_RE['coverage_threshold_met']==True]
+
+
     # Add genomic position if requested
-    if cds_from_genomic_fasta!=False:
-        counter_dict = parseCDSFromGenomic(cds_from_genomic_fasta)
+    if cds_from_genomic_fasta==True:
+        counter_dict = parseCounterPreparedFasta(proteome_fasta)
         blast_hits_RE_filt = blast_hits_RE_filt.assign(position=[counter_dict[x] for x in blast_hits_RE_filt['qseqid']])
 
     # Add the recognition sequences
@@ -299,19 +327,37 @@ def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
 
 def main():
     args = get_options()
-    proteome_fasta = args.fasta
-    cds_fasta = args.cdsfasta
-    if cds_fasta=='F':
-        cds_fasta = False
     output = args.output
+    mode = args.mode
 
-    MT_hits = searchMTasesTypeII(proteome_fasta, cds_fasta)
-    MT_hits.to_csv(output+'_MT.csv', index=False)
-    print('Finished searching for MTases.')
-    RE_hits = searchREasesTypeII(proteome_fasta, cds_fasta)
-    RE_hits.to_csv(output+'_RE.csv', index=False)
-    print('Finished searching for REases.')
+    if args.genbank is not None:
+        genbank_file = args.genbank
+        proteome_fasta = genbank_file+'.tmp.faa'
+        parseGenBank(genbank_file, proteome_fasta) # Make fasta file the way we like it
+        if 'MT' in mode:
+            MT_hits = searchMTasesTypeII(proteome_fasta, True)
+            if MT_hits is not None:
+                MT_hits.to_csv(output+'_MT.csv', index=False)
+            else:
+                print('No MTase hits.')
+            print('Finished searching for MTases.')
+        if 'RE' in mode:
+            RE_hits = searchREasesTypeII(proteome_fasta, True)
+            RE_hits.to_csv(output+'_RE.csv', index=False)
+            print('Finished searching for REases.')
+        os.remove(proteome_fasta)
 
+    elif args.fasta is not None:
+        proteome_fasta = args.fasta
+
+        if 'MT' in mode:
+            MT_hits = searchMTasesTypeII(proteome_fasta, False)
+            MT_hits.to_csv(output+'_MT.csv', index=False)
+            print('Finished searching for MTases.')
+        if 'RE' in mode:
+            RE_hits = searchREasesTypeII(proteome_fasta, False)
+            RE_hits.to_csv(output+'_RE.csv', index=False)
+            print('Finished searching for REases.')
 
 
 if __name__ == "__main__":
