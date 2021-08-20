@@ -15,6 +15,7 @@ def get_options():
     input_group.add_argument('--fasta', help='Alternatively: a fasta file (protein)')
     parser.add_argument('--output', help='Output prefix', required=True)
     parser.add_argument('--mode', help='Mode', required=True)
+    parser.add_argument('--collapse', help='Whether to collapse output to best hit')
     return parser.parse_args()
 
 
@@ -61,14 +62,12 @@ def searchHMM(query_protein_file, hmm_file):
     os.remove(tmp_file)
     return df
 
-
-
-def subsetFasta(input_fasta, names, output_fasta):
+def subsetFasta(input_fasta, seq_names, output_fasta):
     '''Subsets sequences out of an input fasta.
     Args:
         input_fasta (str)
             Filename of input fasta
-        names (list)
+        seq_names (list)
             Names (str) of headers to pull out of fasta
         output_fasta (str)
             Filename to write subsetted fasta to
@@ -79,14 +78,25 @@ def subsetFasta(input_fasta, names, output_fasta):
     with open(output_fasta, 'w') as output_file:
         for line in open(input_fasta, 'r').readlines():
             if line.startswith('>'):
-                name = re.sub('>', '', line.split(' ')[0])
-                if name in names:
+                name = str(re.sub('>', '', line.split(' ')[0]))
+                #print(name)
+                if name in seq_names:
+                    print('Yes'+name)
                     writing_flag = True
                 else:
                     writing_flag = False
             if writing_flag==True:
                 output_file.write(line)
-    return()
+    return
+
+def subsetFasta2(input_fasta, seq_names, output_fasta):
+    seqs = SeqIO.to_dict(SeqIO.parse(input_fasta, 'fasta'))
+    subset_seqs = [seqs[record] for record in seq_names]
+    with open(output_fasta, 'w') as output_file:
+        for record in subset_seqs:
+            output_file.write('>%s\n%s\n' % (record.id, str(record.seq)))
+    return
+
 
 def blastpAgainstDB(query_fasta, db_fasta, db_built=True, evalue_threshold=0.001, format_string='qseqid sseqid pident length qlen evalue'):
     '''Blasts a fasta of query proteins against a database and returns the hits.
@@ -245,7 +255,7 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5):
     else:
         return(None)
 
-def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001):
+def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True):
     '''Searches for Type II MTases.
     Args:
         proteome_fasta (str)
@@ -253,31 +263,41 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
         cds_from_genomic_fasta (str)
             Fasta file of untranslated nucleotides of cds (contains counter info.)
         evalue_threshold (float)
-            Threshold to keep hits at.
-
+            Threshold to keep hits at. Default 0.001 as in Oliveira 2016
+        coverage_threshold (float)
+            Threshold of coverage. Default: 0.5 (i.e. 50%) as in Oliveira 2016
     Returns:
         blast_hits_collapse (DataFrame)
             DataFrame of best hits, collapsed to one row per protein
     '''
     # Using Oliveira Type II MTase HMM profiles to search
     hmm_dict_MT = searchHMM(proteome_fasta, get_data('Type_II_MTases.hmm'))
+    print('Raw hits:')
+    print(hmm_dict_MT)
 
     # Filter hits
     hits_MT_filt = {k:v for k,v in hmm_dict_MT.items() if float(v[3])<evalue_threshold}
+    print('Filtered hits:')
+    print(hits_MT_filt)
 
     # Subset only the hits out from the proteome
     tmp_fasta = 'tmp_MT.faa'
-    subsetFasta(proteome_fasta, list(hits_MT_filt.keys()), tmp_fasta)
+    subsetFasta2(proteome_fasta, list(hits_MT_filt.keys()), tmp_fasta)
 
     # Blast these hits against all Type II MTases to find best matches
     blast_hits_MT = blastpAgainstDB('tmp_MT.faa', get_data('protein_seqs_Type_II_MTases.faa'), db_built=True)
     # Remove tmp fasta file
-    os.remove(tmp_fasta)
+    #os.remove(tmp_fasta)
+    print('Best matches:')
+    print(blast_hits_MT)
 
     # If no hits?
     if blast_hits_MT is None:
         return
     else:
+        # Filter coverage threshold - add
+        blast_hits_MT = blast_hits_MT.assign(coverage_threshold_met=list(blast_hits_MT['length'] > coverage_threshold*blast_hits_MT['qlen'])) # Condition of 50% coverage as in Oliveira 2016
+
         # Get the recognition sites of the best hits
         rs_MT = getRS(blast_hits_MT['sseqid'], get_data('protein_seqs_Type_II_MTases.faa'))
         blast_hits_MT = blast_hits_MT.assign(target=rs_MT)
@@ -288,8 +308,11 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
             blast_hits_MT = blast_hits_MT.assign(position=[counter_dict[x] for x in blast_hits_MT['qseqid']])
 
         # Collapse the table to best hits
-        blast_hits_collapse = collapseBestHits(blast_hits_MT)
-        return(blast_hits_collapse)
+        if collapse==True:
+            blast_hits_collapse = collapseBestHits(blast_hits_MT)
+            return(blast_hits_collapse)
+        else:
+            return(blast_hits_MT)
 
 def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5):
     '''Searches a file of proteins against all known REases.
@@ -329,13 +352,16 @@ def main():
     args = get_options()
     output = args.output
     mode = args.mode
+    collapse_hits = True
+    if args.collapse=='F':
+        collapse_hits = False
 
     if args.genbank is not None:
         genbank_file = args.genbank
         proteome_fasta = genbank_file+'.tmp.faa'
         parseGenBank(genbank_file, proteome_fasta) # Make fasta file the way we like it
         if 'MT' in mode:
-            MT_hits = searchMTasesTypeII(proteome_fasta, True)
+            MT_hits = searchMTasesTypeII(proteome_fasta, True, collapse=collapse_hits)
             if MT_hits is not None:
                 MT_hits.to_csv(output+'_MT.csv', index=False)
             else:
@@ -351,8 +377,12 @@ def main():
         proteome_fasta = args.fasta
 
         if 'MT' in mode:
-            MT_hits = searchMTasesTypeII(proteome_fasta, False)
-            MT_hits.to_csv(output+'_MT.csv', index=False)
+            MT_hits = searchMTasesTypeII(proteome_fasta, False, collapse=collapse_hits)
+            print(MT_hits)
+            if MT_hits is not None:
+                MT_hits.to_csv(output+'_MT.csv', index=False)
+            else:
+                print('No MTase hits.')
             print('Finished searching for MTases.')
         if 'RE' in mode:
             RE_hits = searchREasesTypeII(proteome_fasta, False)
