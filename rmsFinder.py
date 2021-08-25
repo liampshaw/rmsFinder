@@ -250,7 +250,7 @@ def parseCDSFromGenomic(input_fasta):
                 counters[protein_id] = counter
     return(counters)
 
-def predictRMS(hits_MT, hits_RE, position_threshold=5):
+def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_threshold=50):
     '''Predicts RM system based on tables of hits to MTases and REases.
     Args:
         hits_MT (DataFrame)
@@ -259,10 +259,16 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5):
             Hits to REases
         position_threshold (int)
             Proteins need to be < this threshold to count as system present
+        Optional: mt_threshold, re_threshold (int)
+            Similarity thresholds required to rely on prediction of target sequence.
+            Default are the values 55% (MTase) and 50% (REase) from Oliveira 2016
     Returns:
         predicted_rms (list)
             Target sequences as keys with MT and RE proteins and positions stored as values
-    '''    
+    '''
+    # Filter hits based on Oliveira thresholds
+    hits_MT = hits_MT[hits_MT['similarity']>mt_threshold]
+    hits_RE = hits_RE[hits_RE['similarity']>re_threshold]
     # Check for any intersection of targets
     target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
     if len(target_overlap) > 0:
@@ -276,8 +282,23 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5):
             for s in separations:
                 if s[2]<position_threshold:
                     rms_entry = [t, s[0], s[1], list((hits_MT[hits_MT['position']==s[0]]['qseqid']))[0], list((hits_RE[hits_RE['position']==s[1]]['qseqid']))[0]]
-                    predicted_rms.append(rms_entry)
-        return(predicted_rms)
+                    if rms_entry[3]==rms_entry[4]: # If the hit is for the same protein, don't include it (only want paired RE and MT)
+                        pass
+                    else:
+                        predicted_rms.append(rms_entry)
+        print(predicted_rms)
+        if len(predicted_rms)!=0:
+            rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
+            print(rms_results)
+            # Add similarity scores and best hit
+            rms_results['sim_MT'] = rms_results.apply(lambda row : hits_MT[hits_MT['qseqid']==row['prot_MT']]['similarity'], axis=1)
+            rms_results['hit_MT'] = rms_results.apply(lambda row : hits_MT[hits_MT['qseqid']==row['prot_MT']]['sseqid'], axis=1)
+
+            rms_results['sim_RE'] = rms_results.apply(lambda row : hits_RE[hits_RE['qseqid']==row['prot_RE']]['similarity'], axis=1)
+            rms_results['hit_RE'] = rms_results.apply(lambda row : hits_RE[hits_RE['qseqid']==row['prot_RE']]['sseqid'], axis=1)
+            return(rms_results)
+        else:
+            return(None)
     else:
         return(None)
 
@@ -418,7 +439,10 @@ def main():
             print('Finished searching for REases.')
         os.remove(proteome_fasta)
         if 'RE' in mode and 'MT' in mode:
-            print(predictRMS(MT_hits, RE_hits))
+            rms_predictions = predictRMS(MT_hits, RE_hits)
+            print(rms_predictions)
+            if rms_predictions is not None:
+                rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
 
     elif args.fasta is not None:
         proteome_fasta = args.fasta
