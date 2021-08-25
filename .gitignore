@@ -1,5 +1,7 @@
 __pycache__
 *.fa
+*.faa
+*.faa*
 *.aln
 tmp*
 sandbox.py
