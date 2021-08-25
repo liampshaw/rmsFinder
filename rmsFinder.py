@@ -98,7 +98,7 @@ def subsetFasta2(input_fasta, seq_names, output_fasta):
     return
 
 
-def blastpAgainstDB(query_fasta, db_fasta, db_built=True, evalue_threshold=0.001, format_string='qseqid sseqid pident length qlen evalue'):
+def blastpAgainstDB(query_fasta, db_fasta, db_built=True, evalue_threshold=0.001, format_string='qseqid sseqid pident length qlen evalue', top_hits_only=True):
     '''Blasts a fasta of query proteins against a database and returns the hits.
     Args:
         query_fasta (str)
@@ -146,10 +146,13 @@ def blastpAgainstDB(query_fasta, db_fasta, db_built=True, evalue_threshold=0.001
                                                 # For evalue float64 is insufficient? Need the scientific format, so store as string for safety if need later
         # change dtypes
         # max hit dict - for each protein
-        max_hit_dict = {k: max(blast_results[blast_results['qseqid']==k]['pident']) for k in set(blast_results['qseqid'])}
-        # Keep only top hits for each protein
-        blast_results_top = pd.concat([blast_results[[blast_results['qseqid'][i]==k and blast_results['pident'][i]==max_hit_dict[k] for i in range(len(blast_results))]] for k in max_hit_dict.keys()])
-        return(blast_results_top)
+        if top_hits_only==True:
+            max_hit_dict = {k: max(blast_results[blast_results['qseqid']==k]['pident']) for k in set(blast_results['qseqid'])}
+            # Keep only top hits for each protein
+            blast_results_top = pd.concat([blast_results[[blast_results['qseqid'][i]==k and blast_results['pident'][i]==max_hit_dict[k] for i in range(len(blast_results))]] for k in max_hit_dict.keys()])
+            return(blast_results_top)
+        else:
+            return(blast_results)
     else:
         return(None)
 
@@ -158,12 +161,18 @@ def parseGenBank(genbank_file, genbank2fasta_output):
     protein_dict = {}
     counter = 0
     with open(genbank2fasta_output, 'w') as f:
+        observed_proteins = []
         for record in SeqIO.parse(genbank_file, 'genbank'): # read assumes only one entry
             for feature in record.features:
                 if feature.type=='CDS':
                     counter += 1
                     if 'translation' in feature.qualifiers.keys():
-                        f.write('>%s %s product="%s"\n%s\n' % (feature.qualifiers['protein_id'][0], counter, feature.qualifiers['product'][0], feature.qualifiers['translation'][0]))
+                        protein_id = feature.qualifiers['protein_id'][0]
+                        if protein_id in observed_proteins:
+                            pass
+                        else:
+                            f.write('>%s %s product="%s"\n%s\n' % (protein_id, counter, feature.qualifiers['product'][0], feature.qualifiers['translation'][0]))
+                            observed_proteins.append(protein_id)
     return
 
 
