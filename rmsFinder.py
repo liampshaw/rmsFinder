@@ -1,5 +1,6 @@
 import pandas as pd
 from Bio import SeqIO
+from Bio import Align
 import itertools as iter
 import re
 import subprocess
@@ -184,6 +185,22 @@ def getRS(queries, fasta_file):
     rec_seqs = [rec_seq.split(':')[1] for rec_seq in rec_seqs]
     return(rec_seqs)
 
+def globalSimilarity(seq_a, seq_b):
+    '''Returns the optimal global alignment score for two sequences.
+    Args:
+        seq_a, seq_b (str)
+            The sequences to align
+
+    Returns:
+        pident (float)
+            The % similarity score (using the length of the shortest sequence)
+    '''
+    aligner = Align.PairwiseAligner()
+    global_score = aligner.score(seq_a, seq_b)
+    min_length = min([len(seq_a), len(seq_b)])
+    global_pident = global_score/min_length * 100
+    return global_pident
+
 
 def collapseBestHits(best_hits):
     '''Collapses a table of best hits to just a single entry for each protein.
@@ -245,7 +262,7 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5):
     Returns:
         predicted_rms (list)
             Target sequences as keys with MT and RE proteins and positions stored as values
-    '''
+    '''    
     # Check for any intersection of targets
     target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
     if len(target_overlap) > 0:
@@ -295,8 +312,11 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
 
     # Blast these hits against all Type II MTases to find best matches
     blast_hits_MT = blastpAgainstDB('tmp_MT.faa', get_data('protein_seqs_Type_II_MTases.faa'), db_built=True)
+    # Store the sequences for global alignment
+    protein_seqs = SeqIO.to_dict(SeqIO.parse('tmp_MT.faa', 'fasta'))
+    rebase_seqs = SeqIO.to_dict(SeqIO.parse(get_data('protein_seqs_Type_II_MTases.faa'), 'fasta'))
     # Remove tmp fasta file
-    #os.remove(tmp_fasta)
+    os.remove(tmp_fasta)
     print('Best matches:')
     print(blast_hits_MT)
 
@@ -316,6 +336,10 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
             counter_dict = parseCounterPreparedFasta(proteome_fasta)
             blast_hits_MT = blast_hits_MT.assign(position=[counter_dict[x] for x in blast_hits_MT['qseqid']])
 
+        # Add the global similarity of the best hit. Need to have the sequences available
+        blast_hits_MT['similarity'] = blast_hits_MT.apply(lambda row : globalSimilarity(str(protein_seqs[row['qseqid']].seq),
+                     str(rebase_seqs[row['sseqid']].seq)), axis = 1)
+
         # Collapse the table to best hits
         if collapse==True:
             blast_hits_collapse = collapseBestHits(blast_hits_MT)
@@ -323,7 +347,7 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
         else:
             return(blast_hits_MT)
 
-def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5):
+def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True):
     '''Searches a file of proteins against all known REases.
     Args:
         proteome_fasta (str)
@@ -340,6 +364,9 @@ def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
     '''
     # Blasting for REases
     blast_hits_RE = blastpAgainstDB(proteome_fasta, get_data('protein_seqs_Type_II_REases.faa'), db_built=True)
+    # Store the sequences for global alignment
+    protein_seqs = SeqIO.to_dict(SeqIO.parse(proteome_fasta, 'fasta'))
+    rebase_seqs = SeqIO.to_dict(SeqIO.parse(get_data('protein_seqs_Type_II_REases.faa'), 'fasta'))
 
     # Filter out hits
     blast_hits_RE = blast_hits_RE.assign(coverage_threshold_met=list(blast_hits_RE['length'] > coverage_threshold*blast_hits_RE['qlen'])) # Condition of 50% coverage as in Oliveira 2016
@@ -353,9 +380,18 @@ def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
 
     # Add the recognition sequences
     blast_hits_RE_filt = blast_hits_RE_filt.assign(target=getRS(blast_hits_RE_filt['sseqid'], get_data('protein_seqs_Type_II_REases.faa'))) # add target column
-    # Collapse the table
-    blast_hits_collapse = collapseBestHits(blast_hits_RE_filt)
-    return(blast_hits_collapse)
+
+    # Add the global similarity of the best hit. Need to have the sequences available
+    blast_hits_RE_filt['similarity'] = blast_hits_RE_filt.apply(lambda row : globalSimilarity(str(protein_seqs[row['qseqid']].seq),
+                 str(rebase_seqs[row['sseqid']].seq)), axis = 1)
+
+    # Collapse the table to best hits
+    if collapse==True:
+        blast_hits_collapse = collapseBestHits(blast_hits_RE_filt)
+        return(blast_hits_collapse)
+    else:
+        return(blast_hits_RE_filt)
+
 
 def main():
     args = get_options()
@@ -372,15 +408,17 @@ def main():
         if 'MT' in mode:
             MT_hits = searchMTasesTypeII(proteome_fasta, True, collapse=collapse_hits)
             if MT_hits is not None:
-                MT_hits.to_csv(output+'_MT.csv', index=False)
+                MT_hits.to_csv(output+'_MT.csv', index=False, float_format="%.3f")
             else:
                 print('No MTase hits.')
             print('Finished searching for MTases.')
         if 'RE' in mode:
             RE_hits = searchREasesTypeII(proteome_fasta, True)
-            RE_hits.to_csv(output+'_RE.csv', index=False)
+            RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
             print('Finished searching for REases.')
         os.remove(proteome_fasta)
+        if 'RE' in mode and 'MT' in mode:
+            print(predictRMS(MT_hits, RE_hits))
 
     elif args.fasta is not None:
         proteome_fasta = args.fasta
@@ -389,13 +427,13 @@ def main():
             MT_hits = searchMTasesTypeII(proteome_fasta, False, collapse=collapse_hits)
             print(MT_hits)
             if MT_hits is not None:
-                MT_hits.to_csv(output+'_MT.csv', index=False)
+                MT_hits.to_csv(output+'_MT.csv', index=False, float_format="%.3f")
             else:
                 print('No MTase hits.')
             print('Finished searching for MTases.')
         if 'RE' in mode:
             RE_hits = searchREasesTypeII(proteome_fasta, False)
-            RE_hits.to_csv(output+'_RE.csv', index=False)
+            RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
             print('Finished searching for REases.')
 
 
