@@ -3,6 +3,8 @@ __pycache__
 *.faa
 *.faa*
 *.aln
+*pdf
+*R
 tmp*
 sandbox.py
 *csv
