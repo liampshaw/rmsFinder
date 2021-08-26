@@ -1,0 +1,13 @@
+name: rmsf_env
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - pip
+  - numpy
+  - pandas
+  - python=3.8
+  - biopython
+  - hmmer
+  - blast

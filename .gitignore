@@ -1,5 +1,6 @@
 __pycache__
 *.fa
+*.gbk
 *.faa
 *.faa*
 *.aln
