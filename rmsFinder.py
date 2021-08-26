@@ -360,7 +360,7 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
     rebase_seqs = SeqIO.to_dict(SeqIO.parse(MTase_db_file, 'fasta'))
     # Remove tmp fasta file
     os.remove(tmp_fasta)
-    logging.info('  Found %d MTase-protein hits.' % len(blast_hits_collapse))
+    logging.info('  Found %d MTase-protein hits.' % len(blast_hits_MT))
     #print(blast_hits_MT)
 
     # If no hits?
