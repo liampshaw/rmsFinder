@@ -314,11 +314,6 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
                                             sim_RE=lambda x:  hits_RE.loc[x['prot_RE']]['similarity'],
                                             hit_RE=lambda x: hits_RE.loc[x['prot_RE']]['sseqid'])
             logging.info(rms_results)
-            #rms_results['sim_MT'] = rms_results.apply(lambda row : , axis=1)
-            #rms_results['hit_MT'] = rms_results.apply(lambda row : hits_MT[hits_MT['qseqid']==row['prot_MT']]['sseqid'], axis=1)
-
-            #rms_results['sim_RE'] = rms_results.apply(lambda row : hits_RE[hits_RE['qseqid']==row['prot_RE']]['similarity'], axis=1)
-            #rms_results['hit_RE'] = rms_results.apply(lambda row : hits_RE[hits_RE['qseqid']==row['prot_RE']]['sseqid'], axis=1)
             return(rms_results)
         else:
             return(None)
