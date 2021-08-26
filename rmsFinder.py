@@ -8,11 +8,14 @@ import os
 import numpy as np
 import argparse
 
+# For absolute paths
+_ROOT = os.path.abspath(os.path.dirname(__file__))
+
 def get_options():
     parser = argparse.ArgumentParser(description='Predict presence of Type II restriction-modification systems in a genome.',
                                      prog='rmsFinder')
     input_group = parser.add_mutually_exclusive_group(required=True) # mutually exclusive group
-    input_group.add_argument('--genbank', help='Genbank file') # either genbank or fasta, but not both
+    input_group.add_argument('--genbank', help='Genbank file') # either genbank or fasta, but not both. Genbank as downloaded with e.g. ncbi-acc-download NZ_LR025099
     input_group.add_argument('--fasta', help='Alternatively: a fasta file (protein)')
     parser.add_argument('--output', help='Output prefix', required=True)
     parser.add_argument('--mode', help='Mode', required=True)
@@ -20,9 +23,15 @@ def get_options():
     return parser.parse_args()
 
 
-_ROOT = os.path.abspath(os.path.dirname(__file__))
 def get_data(path):
-    '''Returns the absolute path for a data file.'''
+    '''Returns the absolute path for a data file.
+    Args:
+        path (str)
+            The path to the data file
+    Returns:
+        abs_path (str)
+            The absolute path
+    '''
     return os.path.join(_ROOT, 'data', path)
 
 
