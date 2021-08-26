@@ -464,7 +464,6 @@ def main():
         RE_hits = searchREasesTypeII(proteome_fasta, True)
         RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
         logging.info('Finished searching for REases.')
-    os.remove(proteome_fasta)
     if 'RE' in mode and 'MT' in mode: # Predict R-M systems if both searched for
         rms_predictions = predictRMS(MT_hits, RE_hits)
         #print(rms_predictions)
@@ -473,6 +472,7 @@ def main():
             rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
         else:
             logging.info('Predicted no Type II R-M systems.')
+    os.remove(proteome_fasta) # Remove the proteome fasta we made
 
 
 if __name__ == "__main__":
