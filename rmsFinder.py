@@ -301,10 +301,10 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
                         pass
                     else:
                         predicted_rms.append(rms_entry)
-        logger.info(predicted_rms)
+        logging.info(predicted_rms)
         if len(predicted_rms)!=0:
             rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
-            logger.info(rms_results)
+            logging.info(rms_results)
             # Add similarity scores and best hit
             rms_results['sim_MT'] = rms_results.apply(lambda row : hits_MT[hits_MT['qseqid']==row['prot_MT']]['similarity'], axis=1)
             rms_results['hit_MT'] = rms_results.apply(lambda row : hits_MT[hits_MT['qseqid']==row['prot_MT']]['sseqid'], axis=1)
@@ -439,12 +439,12 @@ def main():
     if args.collapse=='F':
         collapse_hits = False
 
-    # Logger
+    # Logger details
     level = logging.INFO
     format = '  %(message)s'
     handlers = [logging.StreamHandler()]
     logging.basicConfig(level = level, format = format, handlers = handlers)
-    logging.info('Started running.')
+    logging.info('Started running rmsFinder.')
 
     if args.genbank is not None:
         genbank_file = args.genbank
@@ -454,17 +454,23 @@ def main():
         proteome_fasta = args.fasta
 
     if 'MT' in mode: # Search for MTases
+        logging.info('\nSearching for MTases...')
         MT_hits = searchMTasesTypeII(proteome_fasta, True, collapse=collapse_hits)
         if MT_hits is not None:
             MT_hits.to_csv(output+'_MT.csv', index=False, float_format="%.3f")
         else:
             logging.info('No MTase hits.')
-        logging.info('Finished searching for MTases.')
+        logging.info('Finished searching for MTases.\n')
     if 'RE' in mode: # Search for REases
+        logging.info('\nSearching for REases...')
         RE_hits = searchREasesTypeII(proteome_fasta, True)
-        RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
+        if RE_hits is not None:
+            RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
+        else:
+            logging.info('No MTase hits.')
         logging.info('Finished searching for REases.')
     if 'RE' in mode and 'MT' in mode: # Predict R-M systems if both searched for
+        logging.info('\nPredicted R-M systems based on MTase and REase presence...')
         rms_predictions = predictRMS(MT_hits, RE_hits)
         #print(rms_predictions)
         if rms_predictions is not None:
