@@ -7,6 +7,7 @@ import subprocess
 import os
 import numpy as np
 import argparse
+import logging
 
 # For absolute paths
 _ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -15,7 +16,7 @@ def get_options():
     parser = argparse.ArgumentParser(description='Predict presence of Type II restriction-modification systems in a genome.',
                                      prog='rmsFinder')
     input_group = parser.add_mutually_exclusive_group(required=True) # mutually exclusive group
-    input_group.add_argument('--genbank', help='Genbank file') # either genbank or fasta, but not both. Genbank as downloaded with e.g. ncbi-acc-download NZ_LR025099
+    input_group.add_argument('--genbank', help='Genbank file') # either genbank or fasta, but not both.
     input_group.add_argument('--fasta', help='Alternatively: a fasta file (protein)')
     parser.add_argument('--output', help='Output prefix', required=True)
     parser.add_argument('--mode', help='Mode', required=True)
@@ -150,18 +151,27 @@ def blastpAgainstDB(query_fasta, db_fasta, db_built=True, evalue_threshold=0.001
         return(None)
 
 def parseGenBank(genbank_file, genbank2fasta_output):
-    '''Parses a GenBank file into a fasta of proteins with useful information.'''
+    '''Parses a GenBank file into a fasta of proteins with useful information.
+    Args:
+        genbank_file (str)
+            File in genbank format. As downloaded with e.g.
+                $ ncbi-acc-download NZ_LR025099
+            If in gzipped format, parseGenbank will gunzip then gzip at end.
+        genbank2fasta_output (str)
+            Output fasta file
+    Returns:
+        None
+    '''
     protein_dict = {}
     counter = 0
     gzipFlag = False
-    if genbank_file.endswith('.gz'):
+    if genbank_file.endswith('.gz'): # Gunzip if we need to
         gzipFlag = True
         gunzip_command = ['gunzip', genbank_file]
         gunzip_process = subprocess.Popen(gunzip_command,
                             stdout = subprocess.PIPE, stderr = subprocess.PIPE)
         gunzip_process.wait()
         genbank_file = genbank_file[:-3]
-        print(genbank_file)
     with open(genbank2fasta_output, 'w') as f:
         observed_proteins = []
         for record in SeqIO.parse(genbank_file, 'genbank'): # read assumes only one entry
@@ -175,7 +185,7 @@ def parseGenBank(genbank_file, genbank2fasta_output):
                         else:
                             f.write('>%s %s product="%s"\n%s\n' % (protein_id, counter, feature.qualifiers['product'][0], feature.qualifiers['translation'][0]))
                             observed_proteins.append(protein_id)
-    if gzipFlag==True:
+    if gzipFlag==True: # Gzip if we gunzipped
         gzip_command = ['gzip', genbank_file]
         gzip_process = subprocess.Popen(gzip_command,stdout = subprocess.PIPE, stderr = subprocess.PIPE)
         gzip_process.wait()
@@ -291,10 +301,10 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
                         pass
                     else:
                         predicted_rms.append(rms_entry)
-        print(predicted_rms)
+        logger.info(predicted_rms)
         if len(predicted_rms)!=0:
             rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
-            print(rms_results)
+            logger.info(rms_results)
             # Add similarity scores and best hit
             rms_results['sim_MT'] = rms_results.apply(lambda row : hits_MT[hits_MT['qseqid']==row['prot_MT']]['similarity'], axis=1)
             rms_results['hit_MT'] = rms_results.apply(lambda row : hits_MT[hits_MT['qseqid']==row['prot_MT']]['sseqid'], axis=1)
@@ -326,13 +336,13 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
 
     # Using Oliveira Type II MTase HMM profiles to search
     hmm_dict_MT = searchHMM(proteome_fasta, get_data('Type_II_MTases.hmm'))
-    print('Raw hits:')
-    print(hmm_dict_MT)
+    logging.info('Found %d raw hits for MTases.' % len(hmm_dict_MT))
+    #print(hmm_dict_MT)
 
     # Filter hits
     hits_MT_filt = {k:v for k,v in hmm_dict_MT.items() if float(v[3])<evalue_threshold}
-    print('Filtered hits:')
-    print(hits_MT_filt)
+    logging.info('Found %d filtered hits for MTases.' % len(hits_MT_filt))
+    #print(hits_MT_filt)
 
     # Subset only the hits out from the proteome
     tmp_fasta = 'tmp_MT.faa'
@@ -345,8 +355,8 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
     rebase_seqs = SeqIO.to_dict(SeqIO.parse(MTase_db_file, 'fasta'))
     # Remove tmp fasta file
     os.remove(tmp_fasta)
-    print('Best matches:')
-    print(blast_hits_MT)
+    logging.info('Found %d best matches for MTases.' % len(blast_hits_MT))
+    #print(blast_hits_MT)
 
     # If no hits?
     if blast_hits_MT is None:
@@ -429,43 +439,40 @@ def main():
     if args.collapse=='F':
         collapse_hits = False
 
+    # Logger
+    level = logging.INFO
+    format = '  %(message)s'
+    handlers = [logging.StreamHandler()]
+    logging.basicConfig(level = level, format = format, handlers = handlers)
+    logging.info('Started running.')
+
     if args.genbank is not None:
         genbank_file = args.genbank
         proteome_fasta = genbank_file+'.tmp.faa'
         parseGenBank(genbank_file, proteome_fasta) # Make fasta file the way we like it
-        if 'MT' in mode:
-            MT_hits = searchMTasesTypeII(proteome_fasta, True, collapse=collapse_hits)
-            if MT_hits is not None:
-                MT_hits.to_csv(output+'_MT.csv', index=False, float_format="%.3f")
-            else:
-                print('No MTase hits.')
-            print('Finished searching for MTases.')
-        if 'RE' in mode:
-            RE_hits = searchREasesTypeII(proteome_fasta, True)
-            RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
-            print('Finished searching for REases.')
-        os.remove(proteome_fasta)
-        if 'RE' in mode and 'MT' in mode:
-            rms_predictions = predictRMS(MT_hits, RE_hits)
-            print(rms_predictions)
-            if rms_predictions is not None:
-                 rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
-
     elif args.fasta is not None:
         proteome_fasta = args.fasta
 
-        if 'MT' in mode:
-            MT_hits = searchMTasesTypeII(proteome_fasta, False, collapse=collapse_hits)
-            print(MT_hits)
-            if MT_hits is not None:
-                MT_hits.to_csv(output+'_MT.csv', index=False, float_format="%.3f")
-            else:
-                print('No MTase hits.')
-            print('Finished searching for MTases.')
-        if 'RE' in mode:
-            RE_hits = searchREasesTypeII(proteome_fasta, False)
-            RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
-            print('Finished searching for REases.')
+    if 'MT' in mode: # Search for MTases
+        MT_hits = searchMTasesTypeII(proteome_fasta, True, collapse=collapse_hits)
+        if MT_hits is not None:
+            MT_hits.to_csv(output+'_MT.csv', index=False, float_format="%.3f")
+        else:
+            logging.info('No MTase hits.')
+        logging.info('Finished searching for MTases.')
+    if 'RE' in mode: # Search for REases
+        RE_hits = searchREasesTypeII(proteome_fasta, True)
+        RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
+        logging.info('Finished searching for REases.')
+    os.remove(proteome_fasta)
+    if 'RE' in mode and 'MT' in mode: # Predict R-M systems if both searched for
+        rms_predictions = predictRMS(MT_hits, RE_hits)
+        #print(rms_predictions)
+        if rms_predictions is not None:
+            logging.info('Predicted presence of %d Type II R-M systems.' % len(rms_predictions))
+            rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
+        else:
+            logging.info('Predicted no Type II R-M systems.')
 
 
 if __name__ == "__main__":
