@@ -305,13 +305,17 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
         logging.info(predicted_rms)
         if len(predicted_rms)!=0:
             rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
-            #logging.info(rms_results)
             # Add similarity scores and best hit
-            rms_results['sim_MT'] = rms_results.apply(lambda row : hits_MT[hits_MT['qseqid']==row['prot_MT']]['similarity'], axis=1)
-            rms_results['hit_MT'] = rms_results.apply(lambda row : hits_MT[hits_MT['qseqid']==row['prot_MT']]['sseqid'], axis=1)
+            rms_results = rms_results.assign(sim_MT=lambda x:  hits_MT[hits_MT['qseqid']==x['prot_MT']]['similarity'],
+                                            hit_MT=lambda x: sim_MT=lambda x:  hits_MT[hits_MT['qseqid']==x['prot_MT']]['sseqid'],
+                                            sim_RE=lambda x:  hits_RE[hits_RE['qseqid']==x['prot_RE']]['similarity'],
+                                            hit_RE=lambda x: sim_RE=lambda x:  hits_RE[hits_RE['qseqid']==x['prot_RE']]['sseqid'])
+            logging.info(rms_results)
+            #rms_results['sim_MT'] = rms_results.apply(lambda row : , axis=1)
+            #rms_results['hit_MT'] = rms_results.apply(lambda row : hits_MT[hits_MT['qseqid']==row['prot_MT']]['sseqid'], axis=1)
 
-            rms_results['sim_RE'] = rms_results.apply(lambda row : hits_RE[hits_RE['qseqid']==row['prot_RE']]['similarity'], axis=1)
-            rms_results['hit_RE'] = rms_results.apply(lambda row : hits_RE[hits_RE['qseqid']==row['prot_RE']]['sseqid'], axis=1)
+            #rms_results['sim_RE'] = rms_results.apply(lambda row : hits_RE[hits_RE['qseqid']==row['prot_RE']]['similarity'], axis=1)
+            #rms_results['hit_RE'] = rms_results.apply(lambda row : hits_RE[hits_RE['qseqid']==row['prot_RE']]['sseqid'], axis=1)
             return(rms_results)
         else:
             return(None)
