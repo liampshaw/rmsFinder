@@ -33,7 +33,6 @@ def searchHMM(query_protein_file, hmm_file):
             Filename of the query fasta
         hmm_file (str)
             Filename of the HMM profile
-
     Returns:
         df (dict)
             Dict of proteins with their top hit in the HMM profile
@@ -64,33 +63,17 @@ def searchHMM(query_protein_file, hmm_file):
     return df
 
 def subsetFasta(input_fasta, seq_names, output_fasta):
-    '''Subsets sequences out of an input fasta.
+    '''Subsets a fasta file and creates a new fasta.
     Args:
         input_fasta (str)
-            Filename of input fasta
+            The original fasta file
         seq_names (list)
-            Names (str) of headers to pull out of fasta
+            The list of sequence names to be subsetted out
         output_fasta (str)
-            Filename to write subsetted fasta to
+            The output file to write the subset to
     Returns:
         None
     '''
-    writing_flag = False
-    with open(output_fasta, 'w') as output_file:
-        for line in open(input_fasta, 'r').readlines():
-            if line.startswith('>'):
-                name = str(re.sub('>', '', line.split(' ')[0]))
-                #print(name)
-                if name in seq_names:
-                    print('Yes'+name)
-                    writing_flag = True
-                else:
-                    writing_flag = False
-            if writing_flag==True:
-                output_file.write(line)
-    return
-
-def subsetFasta2(input_fasta, seq_names, output_fasta):
     seqs = SeqIO.to_dict(SeqIO.parse(input_fasta, 'fasta'))
     subset_seqs = [seqs[record] for record in seq_names]
     with open(output_fasta, 'w') as output_file:
@@ -161,6 +144,11 @@ def parseGenBank(genbank_file, genbank2fasta_output):
     '''Parses a GenBank file into a fasta of proteins with useful information.'''
     protein_dict = {}
     counter = 0
+    if genbank_file.endswith('.gz'):
+        gunzip_command = ['gunzip', genbank_file]
+        gunzip_process = subprocess.Popen(gunzip_command,
+                            stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        genbank_file_gunzipped = genbank_file[:-2]
     with open(genbank2fasta_output, 'w') as f:
         observed_proteins = []
         for record in SeqIO.parse(genbank_file, 'genbank'): # read assumes only one entry
@@ -174,6 +162,10 @@ def parseGenBank(genbank_file, genbank2fasta_output):
                         else:
                             f.write('>%s %s product="%s"\n%s\n' % (protein_id, counter, feature.qualifiers['product'][0], feature.qualifiers['translation'][0]))
                             observed_proteins.append(protein_id)
+    if genbank_file.endswith('.gz'):
+        gzip_command = ['gzip', genbank_file_gunzipped]
+        gzip_process = subprocess.Popen(gzip_command,
+                            stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     return
 
 
@@ -329,7 +321,7 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
 
     # Subset only the hits out from the proteome
     tmp_fasta = 'tmp_MT.faa'
-    subsetFasta2(proteome_fasta, list(hits_MT_filt.keys()), tmp_fasta)
+    subsetFasta(proteome_fasta, list(hits_MT_filt.keys()), tmp_fasta)
 
     # Blast these hits against all Type II MTases to find best matches
     blast_hits_MT = blastpAgainstDB('tmp_MT.faa', get_data('protein_seqs_Type_II_MTases.faa'), db_built=True)
@@ -442,7 +434,7 @@ def main():
             rms_predictions = predictRMS(MT_hits, RE_hits)
             print(rms_predictions)
             if rms_predictions is not None:
-                rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
+                 rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
 
     elif args.fasta is not None:
         proteome_fasta = args.fasta
