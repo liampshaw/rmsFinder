@@ -301,7 +301,8 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
                         pass
                     else:
                         predicted_rms.append(rms_entry)
-        #logging.info(predicted_rms)
+        logging.info('  These were the predicted R-M systems:')
+        logging.info(predicted_rms)
         if len(predicted_rms)!=0:
             rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
             #logging.info(rms_results)
