@@ -309,7 +309,7 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
             rms_results = rms_results.assign(sim_MT=lambda x:  hits_MT[hits_MT['qseqid']==x['prot_MT']]['similarity'],
                                             hit_MT=lambda x: hits_MT[hits_MT['qseqid']==x['prot_MT']]['sseqid'],
                                             sim_RE=lambda x:  hits_RE[hits_RE['qseqid']==x['prot_RE']]['similarity'],
-                                            hit_RE=lambda x: sim_RE=lambda x:  hits_RE[hits_RE['qseqid']==x['prot_RE']]['sseqid'])
+                                            hit_RE=lambda x: hits_RE[hits_RE['qseqid']==x['prot_RE']]['sseqid'])
             logging.info(rms_results)
             #rms_results['sim_MT'] = rms_results.apply(lambda row : , axis=1)
             #rms_results['hit_MT'] = rms_results.apply(lambda row : hits_MT[hits_MT['qseqid']==row['prot_MT']]['sseqid'], axis=1)
