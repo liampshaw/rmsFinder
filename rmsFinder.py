@@ -136,7 +136,7 @@ def blastpAgainstDB(query_fasta, db_fasta, db_built=True, evalue_threshold=0.001
         blast_results = blast_results.astype({'qseqid': 'str', 'sseqid': 'str',
                                                 'pident': 'float64','length': 'int64',
                                                 'qlen': 'int64', 'evalue':'str' })
-                                                # For evalue float64 is insufficient? Need the scientific format, so store as string for safety if need later
+                                                # Need the scientific format, so store evalue as string for safety if need later
         # change dtypes
         # max hit dict - for each protein
         if top_hits_only==True:
@@ -153,11 +153,15 @@ def parseGenBank(genbank_file, genbank2fasta_output):
     '''Parses a GenBank file into a fasta of proteins with useful information.'''
     protein_dict = {}
     counter = 0
+    gzipFlag = False
     if genbank_file.endswith('.gz'):
+        gzipFlag = True
         gunzip_command = ['gunzip', genbank_file]
         gunzip_process = subprocess.Popen(gunzip_command,
                             stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        genbank_file_gunzipped = genbank_file[:-2]
+        gunzip_process.wait()
+        genbank_file = genbank_file[:-3]
+        print(genbank_file)
     with open(genbank2fasta_output, 'w') as f:
         observed_proteins = []
         for record in SeqIO.parse(genbank_file, 'genbank'): # read assumes only one entry
@@ -171,10 +175,10 @@ def parseGenBank(genbank_file, genbank2fasta_output):
                         else:
                             f.write('>%s %s product="%s"\n%s\n' % (protein_id, counter, feature.qualifiers['product'][0], feature.qualifiers['translation'][0]))
                             observed_proteins.append(protein_id)
-    if genbank_file.endswith('.gz'):
-        gzip_command = ['gzip', genbank_file_gunzipped]
-        gzip_process = subprocess.Popen(gzip_command,
-                            stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+    if gzipFlag==True:
+        gzip_command = ['gzip', genbank_file]
+        gzip_process = subprocess.Popen(gzip_command,stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        gzip_process.wait()
     return
 
 
@@ -303,7 +307,7 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
     else:
         return(None)
 
-def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True):
+def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, MTase_db='protein_seqs_Type_II_MTases.faa'):
     '''Searches for Type II MTases.
     Args:
         proteome_fasta (str)
@@ -318,6 +322,8 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
         blast_hits_collapse (DataFrame)
             DataFrame of best hits, collapsed to one row per protein
     '''
+    MTase_db_file = get_data('protein_seqs_Type_II_MTases.faa')
+
     # Using Oliveira Type II MTase HMM profiles to search
     hmm_dict_MT = searchHMM(proteome_fasta, get_data('Type_II_MTases.hmm'))
     print('Raw hits:')
@@ -333,10 +339,10 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
     subsetFasta(proteome_fasta, list(hits_MT_filt.keys()), tmp_fasta)
 
     # Blast these hits against all Type II MTases to find best matches
-    blast_hits_MT = blastpAgainstDB('tmp_MT.faa', get_data('protein_seqs_Type_II_MTases.faa'), db_built=True)
+    blast_hits_MT = blastpAgainstDB('tmp_MT.faa', MTase_db_file, db_built=True)
     # Store the sequences for global alignment
     protein_seqs = SeqIO.to_dict(SeqIO.parse('tmp_MT.faa', 'fasta'))
-    rebase_seqs = SeqIO.to_dict(SeqIO.parse(get_data('protein_seqs_Type_II_MTases.faa'), 'fasta'))
+    rebase_seqs = SeqIO.to_dict(SeqIO.parse(MTase_db_file, 'fasta'))
     # Remove tmp fasta file
     os.remove(tmp_fasta)
     print('Best matches:')
@@ -350,7 +356,7 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
         blast_hits_MT = blast_hits_MT.assign(coverage_threshold_met=list(blast_hits_MT['length'] > coverage_threshold*blast_hits_MT['qlen'])) # Condition of 50% coverage as in Oliveira 2016
 
         # Get the recognition sites of the best hits
-        rs_MT = getRS(blast_hits_MT['sseqid'], get_data('protein_seqs_Type_II_MTases.faa'))
+        rs_MT = getRS(blast_hits_MT['sseqid'], MTase_db_file)
         blast_hits_MT = blast_hits_MT.assign(target=rs_MT)
 
         # Add genomic position if requested
@@ -369,7 +375,7 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
         else:
             return(blast_hits_MT)
 
-def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True):
+def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, REase_db='protein_seqs_Type_II_REases.faa'):
     '''Searches a file of proteins against all known REases.
     Args:
         proteome_fasta (str)
@@ -385,25 +391,25 @@ def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
             DataFrame of best hits, one row per protein
     '''
     # Blasting for REases
-    blast_hits_RE = blastpAgainstDB(proteome_fasta, get_data('protein_seqs_Type_II_REases.faa'), db_built=True)
+    REase_db_file = get_data(REase_db)
+    blast_hits_RE = blastpAgainstDB(proteome_fasta, REase_db_file, db_built=True)
     # Store the sequences for global alignment
     protein_seqs = SeqIO.to_dict(SeqIO.parse(proteome_fasta, 'fasta'))
-    rebase_seqs = SeqIO.to_dict(SeqIO.parse(get_data('protein_seqs_Type_II_REases.faa'), 'fasta'))
+    rebase_seqs = SeqIO.to_dict(SeqIO.parse(REase_db_file, 'fasta'))
 
     # Filter out hits
     blast_hits_RE = blast_hits_RE.assign(coverage_threshold_met=list(blast_hits_RE['length'] > coverage_threshold*blast_hits_RE['qlen'])) # Condition of 50% coverage as in Oliveira 2016
     blast_hits_RE_filt = blast_hits_RE[blast_hits_RE['coverage_threshold_met']==True]
 
-
-    # Add genomic position if requested
+    # Add genomic position, if requested
     if cds_from_genomic_fasta==True:
         counter_dict = parseCounterPreparedFasta(proteome_fasta)
         blast_hits_RE_filt = blast_hits_RE_filt.assign(position=[counter_dict[x] for x in blast_hits_RE_filt['qseqid']])
 
     # Add the recognition sequences
-    blast_hits_RE_filt = blast_hits_RE_filt.assign(target=getRS(blast_hits_RE_filt['sseqid'], get_data('protein_seqs_Type_II_REases.faa'))) # add target column
+    blast_hits_RE_filt = blast_hits_RE_filt.assign(target=getRS(blast_hits_RE_filt['sseqid'], REase_db_file))
 
-    # Add the global similarity of the best hit. Need to have the sequences available
+    # Add the global similarity of the best hit
     blast_hits_RE_filt['similarity'] = blast_hits_RE_filt.apply(lambda row : globalSimilarity(str(protein_seqs[row['qseqid']].seq),
                  str(rebase_seqs[row['sseqid']].seq)), axis = 1)
 
