@@ -48,7 +48,7 @@ def searchHMM(query_protein_file, hmm_file):
             Dict of proteins with their top hit in the HMM profile
     '''
     # Run hmmsearch with hmmer
-    tmp_file = 'tmp'+query_protein_file+'.out'
+    tmp_file = query_protein_file+'tmp.out'
     hmmsearch_command = ['hmmsearch', '--noali', '--tblout', tmp_file,
                         hmm_file, query_protein_file]
     hmmsearch_process = subprocess.Popen(hmmsearch_command,
@@ -345,11 +345,11 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
     #print(hits_MT_filt)
 
     # Subset only the hits out from the proteome
-    tmp_fasta = 'tmp'+proteome_fasta+'_MT.faa'
+    tmp_fasta = proteome_fasta+'tmp_MT.faa'
     subsetFasta(proteome_fasta, list(hits_MT_filt.keys()), tmp_fasta)
 
     # Blast these hits against all Type II MTases to find best matches
-    blast_hits_MT = blastpAgainstDB('tmp_fasta, MTase_db_file, db_built=True)
+    blast_hits_MT = blastpAgainstDB(tmp_fasta, MTase_db_file, db_built=True)
     # Store the sequences for global alignment
     protein_seqs = SeqIO.to_dict(SeqIO.parse(tmp_fasta, 'fasta'))
     rebase_seqs = SeqIO.to_dict(SeqIO.parse(MTase_db_file, 'fasta'))
