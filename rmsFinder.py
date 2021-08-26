@@ -307,7 +307,7 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
             rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
             # Add similarity scores and best hit
             rms_results = rms_results.assign(sim_MT=lambda x:  hits_MT[hits_MT['qseqid']==x['prot_MT']]['similarity'],
-                                            hit_MT=lambda x: sim_MT=lambda x:  hits_MT[hits_MT['qseqid']==x['prot_MT']]['sseqid'],
+                                            hit_MT=lambda x: hits_MT[hits_MT['qseqid']==x['prot_MT']]['sseqid'],
                                             sim_RE=lambda x:  hits_RE[hits_RE['qseqid']==x['prot_RE']]['similarity'],
                                             hit_RE=lambda x: sim_RE=lambda x:  hits_RE[hits_RE['qseqid']==x['prot_RE']]['sseqid'])
             logging.info(rms_results)
