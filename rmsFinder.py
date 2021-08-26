@@ -284,6 +284,10 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
     # Filter hits based on Oliveira thresholds
     hits_MT = hits_MT[hits_MT['similarity']>mt_threshold]
     hits_RE = hits_RE[hits_RE['similarity']>re_threshold]
+    # Add index
+    hits_MT.index = hits_MT['qseqid']
+    hits_RE.index = hits_RE['qseqid']
+
     # Check for any intersection of targets
     target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
     if len(target_overlap) > 0:
@@ -293,7 +297,6 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
             RE_positions = list(hits_RE[hits_RE['target']==t]['position'])
             # Want all pairwise combinations of these
             separations = [(x, y, abs(x-y)) for x in MT_positions for y in RE_positions] # List of tuples storing position of MT and RE and separation
-
             for s in separations:
                 if s[2]<position_threshold:
                     rms_entry = [t, s[0], s[1], list((hits_MT[hits_MT['position']==s[0]]['qseqid']))[0], list((hits_RE[hits_RE['position']==s[1]]['qseqid']))[0]]
@@ -306,10 +309,10 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
         if len(predicted_rms)!=0:
             rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
             # Add similarity scores and best hit
-            rms_results = rms_results.assign(sim_MT=lambda x:  hits_MT[hits_MT['qseqid']==x['prot_MT']]['similarity'],
-                                            hit_MT=lambda x: hits_MT[hits_MT['qseqid']==x['prot_MT']]['sseqid'],
-                                            sim_RE=lambda x:  hits_RE[hits_RE['qseqid']==x['prot_RE']]['similarity'],
-                                            hit_RE=lambda x: hits_RE[hits_RE['qseqid']==x['prot_RE']]['sseqid'])
+            rms_results = rms_results.assign(sim_MT=lambda x:  hits_MT.loc[x['prot_MT']]['similarity'],
+                                            hit_MT=lambda x: hits_MT.loc[x['prot_MT']]['sseqid'],
+                                            sim_RE=lambda x:  hits_RE.loc[x['prot_RE']]['similarity'],
+                                            hit_RE=lambda x: hits_RE.loc[x['prot_RE']]['sseqid'])
             logging.info(rms_results)
             #rms_results['sim_MT'] = rms_results.apply(lambda row : , axis=1)
             #rms_results['hit_MT'] = rms_results.apply(lambda row : hits_MT[hits_MT['qseqid']==row['prot_MT']]['sseqid'], axis=1)
