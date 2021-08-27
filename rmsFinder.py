@@ -287,6 +287,11 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
     # Add index
     hits_MT.index = hits_MT['qseqid']
     hits_RE.index = hits_RE['qseqid']
+    # Subset to similarities for adding to dataframe
+    hits_MT_subset = hits_MT[['qseqid', 'sseqid', 'similarity']]
+    hits_MT_subset.columns = ['qseqid', 'hit_MT', 'sim_MT']
+    hits_RE_subset = hits_RE[['qseqid', 'sseqid', 'similarity']]
+    hits_RE_subset.columns = ['qseqid', 'hit_RE', 'sim_RE']
 
     # Check for any intersection of targets
     target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
@@ -304,17 +309,15 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
                         pass
                     else:
                         predicted_rms.append(rms_entry)
-        logging.info('  These were the predicted R-M systems:')
-        logging.info(predicted_rms)
-        if len(predicted_rms)!=0:
-            rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
-            # Add similarity scores and best hit
-            rms_results = rms_results.assign(sim_MT=lambda x:  hits_MT.loc[x['prot_MT']]['similarity'],
-                                            hit_MT=lambda x: hits_MT.loc[x['prot_MT']]['sseqid'],
-                                            sim_RE=lambda x:  hits_RE.loc[x['prot_RE']]['similarity'],
-                                            hit_RE=lambda x: hits_RE.loc[x['prot_RE']]['sseqid'])
-            logging.info(rms_results)
-            return(rms_results)
+            logging.info('  These were the predicted R-M systems:')
+            logging.info(predicted_rms)
+            if len(predicted_rms)!=0:
+                rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
+                # Add similarity scores and best hit
+                rms_results = rms_results.join(hits_MT_subset.set_index('qseqid'), on='prot_MT')
+                rms_results = rms_results.join(hits_RE_subset.set_index('qseqid'), on='prot_RE')
+                logging.info(rms_results)
+                return(rms_results)
         else:
             return(None)
     else:
