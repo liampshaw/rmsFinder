@@ -98,10 +98,10 @@ def main():
 
     # Make blast databases
     logging.info('\nMaking blast databases...')
+    makeBlastDB('data/Type_II_MT_all.faa')
+    makeBlastDB('data/Type_II_RE_all.faa')
     makeBlastDB('data/Type_II_MT_gold.faa')
     makeBlastDB('data/Type_II_RE_gold.faa')
-    makeBlastDB('data/Type_II_MT.faa')
-    makeBlastDB('data/Type_II_RE.faa')
     logging.info('Done!')
 
     # Removing REBASE files
@@ -112,8 +112,8 @@ def main():
         os.remove(f)
 
     # Record when files where downloaded
-    with open('data/download.log') as f:
-        f.write('Databases last downloaded on:', datetime.datetime.now())
+    with open('data/download.log', 'w') as f:
+        f.write('Databases last downloaded on {}'.format(datetime.datetime.now()))
 
 
 if __name__ == "__main__":
