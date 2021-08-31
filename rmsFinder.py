@@ -24,6 +24,7 @@ def get_options():
     parser.add_argument('--output', help='Output prefix', required=False)
     parser.add_argument('--mode', help='Mode', required=False)
     parser.add_argument('--collapse', help='Whether to collapse output to best hit', action='store_true')
+    parser.add_argument('--gold', help='Use Gold REBASE only', action='store_true')
     return parser.parse_args()
 
 
@@ -464,6 +465,13 @@ def main():
         updateDB.main()
         return
 
+    if args.gold is True:
+        MT_db = 'Type_II_MT_gold.faa'
+        RE_db = 'Type_II_RE_gold.faa'
+    else:
+        MT_db = 'Type_II_MT_all.faa'
+        RE_db = 'Type_II_RE_all.faa'
+
     if args.genbank is not None:
         genbank_file = args.genbank
         proteome_fasta = genbank_file+'.tmp.faa'
@@ -473,7 +481,7 @@ def main():
 
     if 'MT' in mode: # Search for MTases
         logging.info('\nSearching for MTases...')
-        MT_hits = searchMTasesTypeII(proteome_fasta, True, collapse=collapse_hits)
+        MT_hits = searchMTasesTypeII(proteome_fasta, True, collapse=collapse_hits, MTase_db=MT_db)
         if MT_hits is not None:
             MT_hits.to_csv(output+'_MT.csv', index=False, float_format="%.3f")
         else:
@@ -481,7 +489,7 @@ def main():
         logging.info('Finished searching for MTases.')
     if 'RE' in mode: # Search for REases
         logging.info('\nSearching for REases...')
-        RE_hits = searchREasesTypeII(proteome_fasta, True)
+        RE_hits = searchREasesTypeII(proteome_fasta, True, collapse=collapse_hits, REase_db=RE_db)
         if RE_hits is not None:
             RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
         else:
