@@ -329,7 +329,7 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
     else:
         return(None)
 
-def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, MTase_db='protein_seqs_Type_II_MTases.faa'):
+def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, MTase_db='Type_II_MT_all.faa'):
     '''Searches for Type II MTases.
     Args:
         proteome_fasta (str)
@@ -344,7 +344,7 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
         blast_hits_collapse (DataFrame)
             DataFrame of best hits, collapsed to one row per protein
     '''
-    MTase_db_file = get_data('protein_seqs_Type_II_MTases.faa')
+    MTase_db_file = get_data(MTase_db)
 
     # Using Oliveira Type II MTase HMM profiles to search
     hmm_dict_MT = searchHMM(proteome_fasta, get_data('Type_II_MTases.hmm'))
