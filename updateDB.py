@@ -27,9 +27,10 @@ def convertRebaseToFasta(rebase_file, output_fasta):
 
 def extractEnzymesSpecifiedType(fasta_file, type, output_fasta):
     '''Extracts only protein sequences of a particular type from a converted
-    REBASE fasta file (assumes this information is in the fasta descriptions).'''
+    REBASE fasta file (assumes this information is in the fasta descriptions).
+    Only stores those with a known RecSeq.'''
     rebase_seqs = SeqIO.to_dict(SeqIO.parse(fasta_file, 'fasta'))
-    type_names = [seq for seq in rebase_seqs if type in rebase_seqs[seq].description]
+    type_names = [seq for seq in rebase_seqs if type in rebase_seqs[seq].description and 'RecSeq' in rebase_seqs[seq].description]
     type_seqs = [rebase_seqs[record] for record in type_names]
     with open(output_fasta, 'w') as output:
         for record in type_seqs:
