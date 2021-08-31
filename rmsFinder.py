@@ -167,7 +167,6 @@ def parseGenBank(genbank_file, genbank2fasta_output):
         None
     '''
     protein_dict = {}
-    counter = 0
     gzipFlag = False
     if genbank_file.endswith('.gz'): # Gunzip if we need to
         gzipFlag = True
@@ -181,6 +180,7 @@ def parseGenBank(genbank_file, genbank2fasta_output):
         for record in SeqIO.parse(genbank_file, 'genbank'): # there can be multiple records
             record_name = record.name
             record_description = record.description
+            counter = 0
             for feature in record.features:
                 if feature.type=='CDS':
                     counter += 1
@@ -189,7 +189,7 @@ def parseGenBank(genbank_file, genbank2fasta_output):
                         if protein_id in observed_proteins: # don't write if already written
                             pass
                         else:
-                            f.write('>%s %s product="%s"\n%s\n' % (protein_id, counter, feature.qualifiers['product'][0], feature.qualifiers['translation'][0]))
+                            f.write('>%s %s %s product="%s"\n%s\n' % (protein_id, record_name, counter, feature.qualifiers['product'][0], feature.qualifiers['translation'][0]))
                             observed_proteins.append(protein_id)
     if gzipFlag==True: # Gzip if we gunzipped
         gzip_command = ['gzip', genbank_file]
@@ -247,7 +247,7 @@ def parseCounterPreparedFasta(input_fasta):
         if line.startswith('>'):
             entries = line.split()
             protein_id = re.sub('>', '', entries[0])
-            counter_dict[protein_id] = int(entries[1])
+            counter_dict[protein_id] = [entries[1], int(entries[2])]
     return(counter_dict)
 
 def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_threshold=50):
@@ -363,7 +363,8 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
         # Add genomic position if requested
         if cds_from_genomic_fasta==True:
             counter_dict = parseCounterPreparedFasta(proteome_fasta)
-            blast_hits_MT = blast_hits_MT.assign(position=[counter_dict[x] for x in blast_hits_MT['qseqid']])
+            blast_hits_MT = blast_hits_MT.assign(contig=[counter_dict[x][0] for x in blast_hits_MT['qseqid']],
+                                                position=[counter_dict[x][1] for x in blast_hits_MT['qseqid']])
 
         # Add the global similarity of the best hit. Need to have the sequences available
         blast_hits_MT['similarity'] = blast_hits_MT.apply(lambda row : globalSimilarity(str(protein_seqs[row['qseqid']].seq),
@@ -408,7 +409,8 @@ def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
     # Add genomic position, if requested
     if cds_from_genomic_fasta==True:
         counter_dict = parseCounterPreparedFasta(proteome_fasta)
-        blast_hits_RE_filt = blast_hits_RE_filt.assign(position=[counter_dict[x] for x in blast_hits_RE_filt['qseqid']])
+        blast_hits_RE_filt = blast_hits_RE_filt.assign(contig=[counter_dict[x][0] for x in blast_hits_RE_filt['qseqid']],
+                                            position=[counter_dict[x][1] for x in blast_hits_RE_filt['qseqid']])
 
     # Add the recognition sequences
     blast_hits_RE_filt = blast_hits_RE_filt.assign(target=getRS(blast_hits_RE_filt['sseqid'], REase_db_file))
