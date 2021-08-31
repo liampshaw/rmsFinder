@@ -466,9 +466,11 @@ def main():
         return
 
     if args.gold is True:
+        logging.info('Using only REBASE Gold sequences.')
         MT_db = 'Type_II_MT_gold.faa'
         RE_db = 'Type_II_RE_gold.faa'
     else:
+        logging.info('Using all REBASE sequences.')
         MT_db = 'Type_II_MT_all.faa'
         RE_db = 'Type_II_RE_all.faa'
 
