@@ -9,6 +9,8 @@ import numpy as np
 import argparse
 import logging
 
+import updateDB
+
 # For absolute paths
 _ROOT = os.path.abspath(os.path.dirname(__file__))
 
@@ -18,9 +20,10 @@ def get_options():
     input_group = parser.add_mutually_exclusive_group(required=True) # mutually exclusive group
     input_group.add_argument('--genbank', help='Genbank file') # either genbank or fasta, but not both.
     input_group.add_argument('--fasta', help='Alternatively: a fasta file (protein)')
-    parser.add_argument('--output', help='Output prefix', required=True)
-    parser.add_argument('--mode', help='Mode', required=True)
-    parser.add_argument('--collapse', help='Whether to collapse output to best hit')
+    input_group.add_argument('--updatedb', help='Update databases used (download from REBASE)', action='store_true')
+    parser.add_argument('--output', help='Output prefix', required=False)
+    parser.add_argument('--mode', help='Mode', required=False)
+    parser.add_argument('--collapse', help='Whether to collapse output to best hit', action='store_true')
     return parser.parse_args()
 
 
@@ -174,13 +177,15 @@ def parseGenBank(genbank_file, genbank2fasta_output):
         genbank_file = genbank_file[:-3]
     with open(genbank2fasta_output, 'w') as f:
         observed_proteins = []
-        for record in SeqIO.parse(genbank_file, 'genbank'): # read assumes only one entry
+        for record in SeqIO.parse(genbank_file, 'genbank'): # there can be multiple records
+            record_name = record.name
+            record_description = record.description
             for feature in record.features:
                 if feature.type=='CDS':
                     counter += 1
                     if 'translation' in feature.qualifiers.keys():
                         protein_id = feature.qualifiers['protein_id'][0]
-                        if protein_id in observed_proteins:
+                        if protein_id in observed_proteins: # don't write if already written
                             pass
                         else:
                             f.write('>%s %s product="%s"\n%s\n' % (protein_id, counter, feature.qualifiers['product'][0], feature.qualifiers['translation'][0]))
@@ -446,9 +451,7 @@ def main():
     args = get_options()
     output = args.output
     mode = args.mode
-    collapse_hits = True
-    if args.collapse=='F':
-        collapse_hits = False
+    collapse_hits = args.collapse
 
     # Logger details
     level = logging.INFO
@@ -456,6 +459,10 @@ def main():
     handlers = [logging.StreamHandler()]
     logging.basicConfig(level = level, format = format, handlers = handlers)
     logging.info('Started running rmsFinder.')
+
+    if args.updatedb is True:
+        updateDB.main()
+        return
 
     if args.genbank is not None:
         genbank_file = args.genbank
