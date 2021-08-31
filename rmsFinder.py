@@ -284,16 +284,16 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
         predicted_rms = []
         for t in target_overlap:
             MT_positions = list(hits_MT[hits_MT['target']==t]['position'])
+            MT_contigs = list(hits_MT[hits_MT['target']==t]['contig'])
             RE_positions = list(hits_RE[hits_RE['target']==t]['position'])
+            RE_contigs = list(hits_RE[hits_RE['target']==t]['contig'])
             # Want all pairwise combinations of these
-            separations = [(x, y, abs(x-y)) for x in MT_positions for y in RE_positions] # List of tuples storing position of MT and RE and separation
+            separations = [(x, y, abs(x-y), MT_contigs[MT_positions.index(x)]==RE_contigs[RE_positions.index(y)], MT_contigs[MT_positions.index(x)]) for x in MT_positions for y in RE_positions] # List of tuples storing position of MT and RE and separation
             for s in separations:
                 if s[2]<position_threshold:
                     # Check if on same contig - think this can return errors
-                    contig_MT = hits_MT[hits_MT['position']==s[0]]['contig'][0]
-                    contig_RE = hits_RE[hits_RE['position']==s[0]]['contig'][0]
-                    if contig_MT==contig_RE:
-                        rms_entry = [t, s[0], s[1], list((hits_MT[hits_MT['position']==s[0]]['qseqid']))[0], list((hits_RE[hits_RE['position']==s[1]]['qseqid']))[0]]
+                    if s[3]==True:
+                        rms_entry = [t, s[4], s[0], s[1], list((hits_MT[hits_MT['position']==s[0]]['qseqid']))[0], list((hits_RE[hits_RE['position']==s[1]]['qseqid']))[0]]
                         if rms_entry[3]==rms_entry[4]: # If the hit is for the same protein, don't include it (only want paired RE and MT)
                             pass
                         else:
@@ -301,7 +301,7 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
             logging.info('  These were the predicted R-M systems:')
             logging.info(predicted_rms)
             if len(predicted_rms)!=0:
-                rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
+                rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'contig', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
                 # Add similarity scores and best hit
                 rms_results = rms_results.join(hits_MT_subset.set_index('qseqid'), on='prot_MT')
                 rms_results = rms_results.join(hits_RE_subset.set_index('qseqid'), on='prot_RE')
