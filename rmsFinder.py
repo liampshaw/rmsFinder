@@ -23,7 +23,7 @@ def get_options():
     input_group.add_argument('--updatedb', help='Update databases used (download from REBASE)', action='store_true')
     parser.add_argument('--output', help='Output prefix', required=False)
     parser.add_argument('--mode', help='Mode', required=False)
-    parser.add_argument('--collapse', help='Whether to collapse output to best hit', action='store_true')
+    parser.add_argument('--dontcollapse', help='Whether to collapse output to best hit', action='store_true')
     parser.add_argument('--db', help='Which database to use: gold, regular, all', required=True)
     return parser.parse_args()
 
@@ -289,11 +289,15 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
             separations = [(x, y, abs(x-y)) for x in MT_positions for y in RE_positions] # List of tuples storing position of MT and RE and separation
             for s in separations:
                 if s[2]<position_threshold:
-                    rms_entry = [t, s[0], s[1], list((hits_MT[hits_MT['position']==s[0]]['qseqid']))[0], list((hits_RE[hits_RE['position']==s[1]]['qseqid']))[0]]
-                    if rms_entry[3]==rms_entry[4]: # If the hit is for the same protein, don't include it (only want paired RE and MT)
-                        pass
-                    else:
-                        predicted_rms.append(rms_entry)
+                    # Check if on same contig - think this can return errors
+                    contig_MT = hits_MT[hits_MT['position']==s[0]]['contig'][0]
+                    contig_RE = hits_RE[hits_RE['position']==s[0]]['contig'][0]
+                    if contig_MT==contig_RE:
+                        rms_entry = [t, s[0], s[1], list((hits_MT[hits_MT['position']==s[0]]['qseqid']))[0], list((hits_RE[hits_RE['position']==s[1]]['qseqid']))[0]]
+                        if rms_entry[3]==rms_entry[4]: # If the hit is for the same protein, don't include it (only want paired RE and MT)
+                            pass
+                        else:
+                            predicted_rms.append(rms_entry)
             logging.info('  These were the predicted R-M systems:')
             logging.info(predicted_rms)
             if len(predicted_rms)!=0:
@@ -433,7 +437,7 @@ def main():
     args = get_options()
     output = args.output
     mode = args.mode
-    collapse_hits = args.collapse
+    collapse_hits = not args.dontcollapse
 
     # Logger details
     level = logging.INFO
