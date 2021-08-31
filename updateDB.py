@@ -36,6 +36,7 @@ def extractEnzymesSpecifiedType(fasta_file, type, output_fasta):
             _ = output.write('>%s\n%s\n' % (str(record.description), str(record.seq)))
 
 def makeBlastDB(db_fasta):
+    '''Makes blast database from a fasta file.'''
     makeblastdb_command = ['makeblastdb',
                         '-in', db_fasta,
                         '-dbtype', 'prot']
@@ -68,28 +69,29 @@ def main():
     logging.info('Started updating local REBASE databases.')
 
     # Downloading
-    logging.info('Downloading all Type II methyltransferase protein sequences.')
-    downloadFromREBASE('Type_II_methyltransferase_genes_Protein.txt',
-                output='data/Type_II_MT.txt')
-    logging.info('\nDownloading all Type II restriction enzyme protein sequences.')
-    downloadFromREBASE('All_Type_II_restriction_enzyme_genes_Protein.txt',
-                output='data/Type_II_RE.txt')
+    logging.info('Downloading all REBASE protein sequences.')
+    downloadFromREBASE('protein_seqs.txt',
+                output='data/All.txt')
 
     logging.info('\nDownloading all Gold protein sequences.')
     downloadFromREBASE('protein_gold_seqs.txt',
                 output='data/Gold.txt')
 
-
     # Converting
     logging.info('\n\nConverting REBASE files to fasta format...')
-    if os.path.exists('data/Type_II_MT.txt'):
-        convertRebaseToFasta('data/Type_II_MT.txt', 'data/Type_II_MT_all.faa')
-    if os.path.exists('data/Type_II_RE.txt'):
-        convertRebaseToFasta('data/Type_II_RE.txt', 'data/Type_II_RE_all.faa')
+    if os.path.exists('data/All.txt'):
+        convertRebaseToFasta('data/All.txt', 'data/All.faa')
     if os.path.exists('data/Gold.txt'):
         convertRebaseToFasta('data/Gold.txt', 'data/Gold.faa')
     logging.info('Done!')
 
+    # Extracting Type II
+    logging.info('\nExtracting Type II sequences...')
+    extractEnzymesSpecifiedType('data/All.faa', ':Type II methyltransferase', 'data/Type_II_MT_regular.faa') # excludes putative
+    extractEnzymesSpecifiedType('data/All.faa', ':Type II restriction enzyme', 'data/Type_II_RE_regular.faa') # excludes putative
+    extractEnzymesSpecifiedType('data/All.faa', 'Type II methyltransferase', 'data/Type_II_MT_all.faa')
+    extractEnzymesSpecifiedType('data/All.faa', 'Type II restriction enzyme', 'data/Type_II_RE_all.faa')
+    logging.info('Done!')
     # Extracting Gold Type II
     logging.info('\nExtracting Gold Type II sequences...')
     extractEnzymesSpecifiedType('data/Gold.faa', 'Type II methyltransferase', 'data/Type_II_MT_gold.faa')
@@ -100,14 +102,17 @@ def main():
     logging.info('\nMaking blast databases...')
     makeBlastDB('data/Type_II_MT_all.faa')
     makeBlastDB('data/Type_II_RE_all.faa')
+    makeBlastDB('data/Type_II_MT_regular.faa')
+    makeBlastDB('data/Type_II_RE_regular.faa')
     makeBlastDB('data/Type_II_MT_gold.faa')
     makeBlastDB('data/Type_II_RE_gold.faa')
     logging.info('Done!')
 
     # Removing REBASE files
-    os.remove('data/Type_II_MT.txt')
-    os.remove('data/Type_II_RE.txt')
+    os.remove('data/All.txt')
+    os.remove('data/All.faa')
     os.remove('data/Gold.txt')
+    os.remove('data/Gold.faa')
     for f in glob.glob('data/*.tmp'):
         os.remove(f)
 
