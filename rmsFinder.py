@@ -24,7 +24,7 @@ def get_options():
     parser.add_argument('--output', help='Output prefix', required=False)
     parser.add_argument('--mode', help='Mode', required=False)
     parser.add_argument('--collapse', help='Whether to collapse output to best hit', action='store_true')
-    parser.add_argument('--gold', help='Use Gold REBASE only', action='store_true')
+    parser.add_argument('--db', help='Which database to use: gold, regular, all', required=True)
     return parser.parse_args()
 
 
@@ -465,15 +465,19 @@ def main():
         updateDB.main()
         return
 
-    if args.gold is True:
+    if args.db=='gold':
         logging.info('Using only REBASE Gold sequences.')
         MT_db = 'Type_II_MT_gold.faa'
         RE_db = 'Type_II_RE_gold.faa'
-    else:
-        logging.info('Using all REBASE sequences.')
+    elif args.db=='regular':
+        logging.info('Using only regular REBASE sequences (excluding putative).')
+        MT_db = 'Type_II_MT_regular.faa'
+        RE_db = 'Type_II_RE_regular.faa'
+    elif args.db=='all':
+        logging.info('Using all REBASE sequences (including putative).')
         MT_db = 'Type_II_MT_all.faa'
         RE_db = 'Type_II_RE_all.faa'
-
+        
     if args.genbank is not None:
         genbank_file = args.genbank
         proteome_fasta = genbank_file+'.tmp.faa'
