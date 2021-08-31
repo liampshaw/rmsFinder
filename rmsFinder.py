@@ -250,27 +250,6 @@ def parseCounterPreparedFasta(input_fasta):
             counter_dict[protein_id] = int(entries[1])
     return(counter_dict)
 
-def parseCDSFromGenomic(input_fasta):
-    '''Takes a _cds_from_genomic.fna file downloaded from NCBI and produces a dict of the proteins with their locations.
-    Args:
-        input_fasta (str)
-            Filename of _cds_from_genomic.fna file
-    Returns:
-        counters (dict)
-            Dictionary matching protein_id to counter number (for genomic position)
-    '''
-    counters = {}
-    for line in open(input_fasta, 'r').readlines():
-        if line.startswith('>'):
-            entries = line.split()
-            where_is_protein = ['protein_id' in x for x in entries]
-            if any(where_is_protein)==True:
-                protein_id = entries[where_is_protein.index(True)]
-                protein_id =  re.sub('\]', '', re.sub('\[_=', '', re.sub('[a-z]', '', protein_id)))
-                counter = int(re.sub('.*_', '', entries[0]))
-                counters[protein_id] = counter
-    return(counters)
-
 def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_threshold=50):
     '''Predicts RM system based on tables of hits to MTases and REases.
     Args:
@@ -477,7 +456,7 @@ def main():
         logging.info('Using all REBASE sequences (including putative).')
         MT_db = 'Type_II_MT_all.faa'
         RE_db = 'Type_II_RE_all.faa'
-        
+
     if args.genbank is not None:
         genbank_file = args.genbank
         proteome_fasta = genbank_file+'.tmp.faa'
