@@ -113,7 +113,9 @@ def main():
 
     # Record when files where downloaded
     with open('data/download.log', 'w') as f:
-        f.write('Databases last downloaded on {}'.format(datetime.datetime.now()))
+        now = datetime.datetime.now()
+        format = "%d/%m/%Y %H:%M:%S"
+        f.write('Databases last downloaded on {}\n'.format(now.strftime(format)))
 
 
 if __name__ == "__main__":
