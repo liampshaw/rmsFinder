@@ -489,7 +489,7 @@ def main():
             MT_lookup_dict[line[0]] = line[1]
 
         logging.info('\nSearching for MTases...')
-        MT_hits = searchMTasesTypeII(proteome_fasta, True, collapse=collapse_hits, MTase_db=MT_db, MT_dict=MT_lookup_dict)
+        MT_hits = searchMTasesTypeII(proteome_fasta, True, collapse=collapse_hits, MTase_db=MT_db, MT_lookup=MT_lookup_dict)
         if MT_hits is not None:
             MT_hits.to_csv(output+'_MT.csv', index=False, float_format="%.3f")
         else:
@@ -502,7 +502,7 @@ def main():
             line = line.strip('\n').split()
             RE_lookup_dict[line[0]] = line[1]
         logging.info('\nSearching for REases...')
-        RE_hits = searchREasesTypeII(proteome_fasta, True, collapse=collapse_hits, REase_db=RE_db, RE_dict=RE_lookup_dict)
+        RE_hits = searchREasesTypeII(proteome_fasta, True, collapse=collapse_hits, REase_db=RE_db, RE_lookup=RE_lookup_dict)
         if RE_hits is not None:
             RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
         else:
