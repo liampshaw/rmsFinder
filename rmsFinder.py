@@ -52,7 +52,7 @@ def searchHMM(query_protein_file, hmm_file):
             Dict of proteins with their top hit in the HMM profile
     '''
     # Run hmmsearch with hmmer
-    tmp_file = query_protein_file+'tmp.out'
+    tmp_file = 'TMP_'+query_protein_file+'.out'
     hmmsearch_command = ['hmmsearch', '--noali', '--tblout', tmp_file,
                         hmm_file, query_protein_file]
     hmmsearch_process = subprocess.Popen(hmmsearch_command,
@@ -350,7 +350,7 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
     #print(hits_MT_filt)
 
     # Subset only the hits out from the proteome
-    tmp_fasta = proteome_fasta+'tmp_MT.faa'
+    tmp_fasta = 'TMP_'+proteome_fasta+'_MT.faa'
     subsetFasta(proteome_fasta, list(hits_MT_filt.keys()), tmp_fasta)
 
     # Blast these hits against all Type II MTases to find best matches
@@ -487,7 +487,7 @@ def main():
 
     if args.genbank is not None:
         genbank_file = args.genbank
-        proteome_fasta = genbank_file+'.tmp.faa'
+        proteome_fasta = 'TMP_'+genbank_file+'.faa'
         parseGenBank(genbank_file, proteome_fasta) # Make fasta file the way we like it
     elif args.fasta is not None:
         proteome_fasta = args.fasta
