@@ -313,7 +313,16 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
     else:
         return(None)
 
-def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, MTase_db='Type_II_MT_all.faa', MT_lookup=MT_lookup_dict):
+def readLookupDict(dict_file):
+    '''Reads in lookup dictionary file and returns dict.'''
+    # Read in MT lookup dict
+    lookup_dict = {}
+    for line in open(get_data(dict_file), 'r').readlines():
+        line = line.strip('\n').split()
+        lookup_dict[line[0]] = line[1]
+    return lookup_dict
+
+def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, MTase_db='Type_II_MT_all.faa', MT_lookup='Type_II_MT_dict.txt'):
     '''Searches for Type II MTases.
     Args:
         proteome_fasta (str)
@@ -376,6 +385,7 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
                      str(rebase_seqs[row['sseqid']].seq)), axis = 1)
 
         # Add the quality of the hit
+        MT_lookup_dict = readLookupDict(MT_lookup)
         blast_hits_MT['hit_type'] = blast_hits_MT.apply(lambda row : MT_lookup_dict[row['sseqid']], axis=1)
 
         # Collapse the table to best hits
@@ -386,7 +396,7 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
         else:
             return(blast_hits_MT)
 
-def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, REase_db='protein_seqs_Type_II_REases.faa', RE_lookup=RE_lookup_dict):
+def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, REase_db='protein_seqs_Type_II_REases.faa', RE_lookup='Type_II_RE_dict.txt'):
     '''Searches a file of proteins against all known REases.
     Args:
         proteome_fasta (str)
@@ -428,6 +438,7 @@ def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
                  str(rebase_seqs[row['sseqid']].seq)), axis = 1)
 
     # Add the quality of the hit
+    RE_lookup_dict = readLookupDict(RE_lookup)
     blast_hits_RE_filt['hit_type'] = blast_hits_RE_filt.apply(lambda row : RE_lookup_dict[row['sseqid']], axis=1)
 
 
@@ -482,27 +493,16 @@ def main():
         proteome_fasta = args.fasta
 
     if 'MT' in mode: # Search for MTases
-        # Read in MT lookup dict
-        MT_lookup_dict = {}
-        for line in open(get_data('Type_II_MT_dict.txt'), 'r').readlines():
-            line = line.strip('\n').split()
-            MT_lookup_dict[line[0]] = line[1]
-
         logging.info('\nSearching for MTases...')
-        MT_hits = searchMTasesTypeII(proteome_fasta, True, collapse=collapse_hits, MTase_db=MT_db, MT_lookup=MT_lookup_dict)
+        MT_hits = searchMTasesTypeII(proteome_fasta, True, collapse=collapse_hits, MTase_db=MT_db, MT_lookup='Type_II_MT_dict.txt')
         if MT_hits is not None:
             MT_hits.to_csv(output+'_MT.csv', index=False, float_format="%.3f")
         else:
             logging.info('  No MTase hits.')
         logging.info('Finished searching for MTases.')
     if 'RE' in mode: # Search for REases
-        # Read in RE lookup dict
-        RE_lookup_dict = {}
-        for line in open(get_data('Type_II_RE_dict.txt'), 'r').readlines():
-            line = line.strip('\n').split()
-            RE_lookup_dict[line[0]] = line[1]
         logging.info('\nSearching for REases...')
-        RE_hits = searchREasesTypeII(proteome_fasta, True, collapse=collapse_hits, REase_db=RE_db, RE_lookup=RE_lookup_dict)
+        RE_hits = searchREasesTypeII(proteome_fasta, True, collapse=collapse_hits, REase_db=RE_db, RE_lookup='Type_II_RE_dict.txt')
         if RE_hits is not None:
             RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
         else:
