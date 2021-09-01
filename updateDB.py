@@ -72,7 +72,7 @@ def writeLookupTables(gold_fasta, regular_fasta, all_fasta, output):
     proteins_lookup_dict.update({x: 'regular' for x in proteins_regular})
     proteins_lookup_dict.update({x: 'putative' for x in proteins_putative})
     with open(output, 'w') as f:
-        for k, v in MTs_lookup_dict.items():
+        for k, v in proteins_lookup_dict.items():
             _ = f.write('%s %s\n' % (k, v))
     return
 
