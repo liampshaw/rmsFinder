@@ -61,15 +61,15 @@ def downloadFromREBASE(file, output):
             attempts += 1
     return
 
-def writeLookupTables(gold_fasta, regular_fasta, all_fasta, output):
+def writeLookupTables(gold_fasta, nonputative_fasta, all_fasta, output):
     '''Writes lookup table.'''
     proteins_gold = SeqIO.to_dict(SeqIO.parse(gold_fasta, 'fasta')).keys()
-    proteins_regular = SeqIO.to_dict(SeqIO.parse(regular_fasta, 'fasta')).keys()
+    proteins_nonputative = SeqIO.to_dict(SeqIO.parse(nonputative_fasta, 'fasta')).keys()
     proteins_all = SeqIO.to_dict(SeqIO.parse(all_fasta, 'fasta')).keys()
-    proteins_putative = [x for x in proteins_all if not x in proteins_regular]
-    proteins_regular = [x for x in proteins_regular if x not in proteins_gold]
+    proteins_putative = [x for x in proteins_all if not x in proteins_nonputative]
+    proteins_nonputative = [x for x in proteins_nonputative if x not in proteins_gold]
     proteins_lookup_dict = {x: 'gold' for x in proteins_gold}
-    proteins_lookup_dict.update({x: 'regular' for x in proteins_regular})
+    proteins_lookup_dict.update({x: 'nonputative' for x in proteins_nonputative})
     proteins_lookup_dict.update({x: 'putative' for x in proteins_putative})
     with open(output, 'w') as f:
         for k, v in proteins_lookup_dict.items():
@@ -103,8 +103,8 @@ def main():
 
     # Extracting Type II
     logging.info('\nExtracting Type II sequences...')
-    extractEnzymesSpecifiedType('data/All.faa', ':Type II methyltransferase', 'data/Type_II_MT_regular.faa') # excludes putative
-    extractEnzymesSpecifiedType('data/All.faa', ':Type II restriction enzyme', 'data/Type_II_RE_regular.faa') # excludes putative
+    extractEnzymesSpecifiedType('data/All.faa', ':Type II methyltransferase', 'data/Type_II_MT_nonputative.faa') # excludes putative
+    extractEnzymesSpecifiedType('data/All.faa', ':Type II restriction enzyme', 'data/Type_II_RE_nonputative.faa') # excludes putative
     extractEnzymesSpecifiedType('data/All.faa', 'Type II methyltransferase', 'data/Type_II_MT_all.faa')
     extractEnzymesSpecifiedType('data/All.faa', 'Type II restriction enzyme', 'data/Type_II_RE_all.faa')
     logging.info('Done!')
@@ -115,15 +115,15 @@ def main():
     logging.info('Done!')
 
     # Making lookup tables
-    writeLookupTables('data/Type_II_MT_gold.faa', 'data/Type_II_MT_regular.faa', 'data/Type_II_MT_all.faa', 'data/Type_II_MT_dict.txt')
-    writeLookupTables('data/Type_II_RE_gold.faa', 'data/Type_II_RE_regular.faa', 'data/Type_II_RE_all.faa', 'data/Type_II_RE_dict.txt')
+    writeLookupTables('data/Type_II_MT_gold.faa', 'data/Type_II_MT_nonputative.faa', 'data/Type_II_MT_all.faa', 'data/Type_II_MT_dict.txt')
+    writeLookupTables('data/Type_II_RE_gold.faa', 'data/Type_II_RE_nonputative.faa', 'data/Type_II_RE_all.faa', 'data/Type_II_RE_dict.txt')
 
     # Make blast databases
     logging.info('\nMaking blast databases...')
     makeBlastDB('data/Type_II_MT_all.faa')
     makeBlastDB('data/Type_II_RE_all.faa')
-    makeBlastDB('data/Type_II_MT_regular.faa')
-    makeBlastDB('data/Type_II_RE_regular.faa')
+    makeBlastDB('data/Type_II_MT_nonputative.faa')
+    makeBlastDB('data/Type_II_RE_nonputative.faa')
     makeBlastDB('data/Type_II_MT_gold.faa')
     makeBlastDB('data/Type_II_RE_gold.faa')
     logging.info('Done!')

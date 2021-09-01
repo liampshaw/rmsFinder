@@ -454,14 +454,17 @@ def main():
         logging.info('Using only REBASE Gold sequences.')
         MT_db = 'Type_II_MT_gold.faa'
         RE_db = 'Type_II_RE_gold.faa'
-    elif args.db=='regular':
-        logging.info('Using only regular REBASE sequences (excluding putative).')
-        MT_db = 'Type_II_MT_regular.faa'
-        RE_db = 'Type_II_RE_regular.faa'
+    elif args.db=='nonputative':
+        logging.info('Using only nonputative REBASE sequences (excluding putative).')
+        MT_db = 'Type_II_MT_nonputative.faa'
+        RE_db = 'Type_II_RE_nonputative.faa'
     elif args.db=='all':
         logging.info('Using all REBASE sequences (including putative).')
         MT_db = 'Type_II_MT_all.faa'
         RE_db = 'Type_II_RE_all.faa'
+    else:
+        logging.info('ERROR: did not recognise db argument. Choose from: gold, nonputative, all')
+        return
 
     if args.genbank is not None:
         genbank_file = args.genbank
