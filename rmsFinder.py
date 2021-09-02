@@ -298,6 +298,7 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
     target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
     if len(target_overlap) > 0:
         predicted_rms = []
+
         for t in target_overlap:
             MT_positions = list(hits_MT[hits_MT['target']==t]['position'])
             MT_contigs = list(hits_MT[hits_MT['target']==t]['contig'])
@@ -315,15 +316,15 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
                             pass
                         else:
                             predicted_rms.append(rms_entry)
-            logging.info('  Predicted the following R-M systems:')
-            for rms in predicted_rms:
-                logging.info(rms)
-            if len(predicted_rms)!=0:
-                rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'contig', 'contig_description', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
-                # Add similarity scores and best hit
-                rms_results = rms_results.join(hits_MT_subset.set_index('qseqid'), on='prot_MT')
-                rms_results = rms_results.join(hits_RE_subset.set_index('qseqid'), on='prot_RE')
-                return(rms_results)
+        logging.info('  Predicted the following R-M systems:')
+        for rms in predicted_rms:
+            logging.info(rms)
+        if len(predicted_rms)!=0:
+            rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'contig', 'contig_description', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
+            # Add similarity scores and best hit
+            rms_results = rms_results.join(hits_MT_subset.set_index('qseqid'), on='prot_MT')
+            rms_results = rms_results.join(hits_RE_subset.set_index('qseqid'), on='prot_RE')
+            return(rms_results)
         else:
             return(None)
     else:
