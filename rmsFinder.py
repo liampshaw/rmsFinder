@@ -39,6 +39,16 @@ def get_data(path):
     '''
     return os.path.join(_ROOT, 'data', path)
 
+def makeTmpFile(file_path, suffix, prefix='TMP'):
+    '''Makes a TMP_ file from a given file descriptor, taking path into account
+    so that TMP_ file will be in same directory.'''
+    if '/' in file_path:
+        file_str = re.sub('.*/', '', file_path)
+        preamble_str = file_path[:-len(file)]
+        tmp_path = preamble_str+'TMP_'+file_str+'.'+suffix
+    else:
+        tmp_path = 'TMP_'+file_path+'.'+suffix
+    return tmp_path
 
 def searchHMM(query_protein_file, hmm_file):
     '''Searches a proteome against a specified hmm file.
@@ -52,7 +62,7 @@ def searchHMM(query_protein_file, hmm_file):
             Dict of proteins with their top hit in the HMM profile
     '''
     # Run hmmsearch with hmmer
-    tmp_file = 'TMP_'+query_protein_file+'.out'
+    tmp_file = makeTmpFile(query_protein_file, 'out')
     hmmsearch_command = ['hmmsearch', '--noali', '--tblout', tmp_file,
                         hmm_file, query_protein_file]
     hmmsearch_process = subprocess.Popen(hmmsearch_command,
@@ -356,7 +366,7 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
     #print(hits_MT_filt)
 
     # Subset only the hits out from the proteome
-    tmp_fasta = 'TMP_'+proteome_fasta+'_MT.faa'
+    tmp_fasta = makeTmpFile(proteome_fasta,'_MT.faa')
     subsetFasta(proteome_fasta, list(hits_MT_filt.keys()), tmp_fasta)
 
     # Blast these hits against all Type II MTases to find best matches
@@ -495,7 +505,7 @@ def main():
 
     if args.genbank is not None:
         genbank_file = args.genbank
-        proteome_fasta = 'TMP_'+genbank_file+'.faa'
+        proteome_fasta = makeTmpFile(genbank_file,'faa')
         parseGenBank(genbank_file, proteome_fasta) # Make fasta file the way we like it
     elif args.fasta is not None:
         proteome_fasta = args.fasta
