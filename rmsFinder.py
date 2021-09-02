@@ -316,13 +316,13 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
                         else:
                             predicted_rms.append(rms_entry)
             logging.info('  Predicted the following R-M systems:')
-            logging.info(predicted_rms)
+            for rms in predicted_rms:
+                logging.info(rms)
             if len(predicted_rms)!=0:
                 rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'contig', 'contig_description', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
                 # Add similarity scores and best hit
                 rms_results = rms_results.join(hits_MT_subset.set_index('qseqid'), on='prot_MT')
                 rms_results = rms_results.join(hits_RE_subset.set_index('qseqid'), on='prot_RE')
-                logging.info(rms_results)
                 return(rms_results)
         else:
             return(None)
