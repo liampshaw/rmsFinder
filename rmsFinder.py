@@ -239,8 +239,8 @@ def collapseBestHits(best_hits):
     '''
     best_hits = best_hits.sort_values(['qseqid', 'hit_type'], ascending=[False, True]) # hit_type goes gold, nonputative, putative so ensures best hit is on top
     best_hits_collapse = pd.concat([best_hits[best_hits['qseqid']==x].head(1) for x in set(best_hits['qseqid'])])
-    # Add alternative seq_ids
-    best_hits_collapse = best_hits_collapse.assign(other_REBASE_hits = [','.join(list(best_hits[best_hits['qseqid']==x]['sseqid'])[1:]) for x in set(best_hits['qseqid'])])
+    # CURRENTLY NOT STORE: Add alternative seq_ids (NOT STORED because it's redundant information)
+    #best_hits_collapse = best_hits_collapse.assign(other_REBASE_hits = [','.join(list(best_hits[best_hits['qseqid']==x]['sseqid'])[1:]) for x in set(best_hits['qseqid'])])
     best_hits_collapse = best_hits_collapse.assign(n_REBASE_hits = [len(list(best_hits[best_hits['qseqid']==x]['sseqid'])) for x in set(best_hits['qseqid'])])
     # Check if all target sequences are the same
     best_hits_collapse = best_hits_collapse.assign(identicalTarget = [len(set(best_hits[best_hits['qseqid']==x]['target']))==1 for x in best_hits_collapse['qseqid']])
