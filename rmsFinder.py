@@ -316,14 +316,14 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
                             pass
                         else:
                             predicted_rms.append(rms_entry)
-        logging.info('  Predicted the following R-M systems:')
-        for rms in predicted_rms:
-            logging.info(rms)
         if len(predicted_rms)!=0:
             rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'contig', 'contig_description', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
             # Add similarity scores and best hit
             rms_results = rms_results.join(hits_MT_subset.set_index('qseqid'), on='prot_MT')
             rms_results = rms_results.join(hits_RE_subset.set_index('qseqid'), on='prot_RE')
+            logging.info('  Predicted the following R-M systems:')
+            for rms in predicted_rms:
+                        logging.info(rms)
             return(rms_results)
         else:
             return(None)
@@ -528,7 +528,7 @@ def main():
             logging.info('  No MTase hits.')
         logging.info('Finished searching for REases.')
     if 'RE' in mode and 'MT' in mode: # Predict R-M systems if both searched for
-        logging.info('\nPredicted R-M systems based on MTase and REase presence...')
+        logging.info('\nPredicting R-M systems based on MTase and REase presence...')
         rms_predictions = predictRMS(MT_hits, RE_hits)
         #print(rms_predictions)
         if rms_predictions is not None:
