@@ -1,4 +1,4 @@
-name: rmsf_env
+name: rmsfinder_env
 channels:
   - conda-forge
   - bioconda
@@ -11,3 +11,6 @@ dependencies:
   - biopython
   - hmmer
   - blast
+#  - tqdm
+  - python-wget
+# - ncbi-genome-download (only if want to download refseq)
