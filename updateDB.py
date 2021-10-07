@@ -6,6 +6,15 @@ import logging
 import wget
 import glob, os
 import datetime
+import rmsFinder as rf
+import argparse
+
+def get_options():
+    parser = argparse.ArgumentParser(description='Download REBASE sequences and set up databases for Type II RM systems.',
+                                     prog='updateDB')
+    parser.add_argument('--force', help='Force overwrite.', required=False, action='store_true')
+    return parser.parse_args()
+
 
 
 def convertRebaseToFasta(rebase_file, output_fasta):
@@ -123,6 +132,13 @@ def writeLookupTables(gold_fasta, nonputative_fasta, all_fasta, output):
     return
 
 def main():
+    args = get_options()
+    if args.force==False:
+        if os.path.exists(rf.get_data('download.log')):
+            last_downloaded = open(rf.get_data('download.log'), 'r').readlines()[0]
+            print(last_downloaded)
+            print('Do you still want to continue?\nIf you want to download REBASE databases again and overwrite these older versions, use --force.')
+            return
     # Logger details
     level = logging.INFO
     format = '%(message)s'
@@ -133,57 +149,57 @@ def main():
     # Downloading
     logging.info('Downloading all REBASE protein sequences.')
     downloadFromREBASE('protein_seqs.txt',
-                output='data/All.txt')
+                output=rf.get_data('All.txt'))
 
     logging.info('\nDownloading all Gold protein sequences.')
     downloadFromREBASE('protein_gold_seqs.txt',
-                output='data/Gold.txt')
+                output=rf.get_data('Gold.txt'))
 
     # Converting
     logging.info('\n\nConverting REBASE files to fasta format...')
-    if os.path.exists('data/All.txt'):
-        convertRebaseToFasta('data/All.txt', 'data/All.faa')
-    if os.path.exists('data/Gold.txt'):
-        convertRebaseToFasta('data/Gold.txt', 'data/Gold.faa')
+    if os.path.exists(rf.get_data('All.txt')):
+        convertRebaseToFasta(rf.get_data('All.txt'), rf.get_data('All.faa'))
+    if os.path.exists(rf.get_data('Gold.txt')):
+        convertRebaseToFasta(rf.get_data('Gold.txt'), rf.get_data('Gold.faa'))
     logging.info('Done!')
 
     # Extracting Type II
     logging.info('\nExtracting Type II sequences...')
-    extractEnzymesSpecifiedType('data/All.faa', ':Type II methyltransferase', 'data/Type_II_MT_nonputative.faa') # excludes putative
-    extractEnzymesSpecifiedType('data/All.faa', ':Type II restriction enzyme', 'data/Type_II_RE_nonputative.faa') # excludes putative
-    extractEnzymesSpecifiedType('data/All.faa', 'Type II methyltransferase', 'data/Type_II_MT_all.faa')
-    extractEnzymesSpecifiedType('data/All.faa', 'Type II restriction enzyme', 'data/Type_II_RE_all.faa')
+    extractEnzymesSpecifiedType(rf.get_data('All.faa'), ':Type II methyltransferase', rf.get_data('Type_II_MT_nonputative.faa')) # excludes putative
+    extractEnzymesSpecifiedType(rf.get_data('All.faa'), ':Type II restriction enzyme', rf.get_data('Type_II_RE_nonputative.faa')) # excludes putative
+    extractEnzymesSpecifiedType(rf.get_data('All.faa'), 'Type II methyltransferase', rf.get_data('Type_II_MT_all.faa'))
+    extractEnzymesSpecifiedType(rf.get_data('All.faa'), 'Type II restriction enzyme', rf.get_data('Type_II_RE_all.faa'))
     logging.info('Done!')
     # Extracting Gold Type II
     logging.info('\nExtracting Gold Type II sequences...')
-    extractEnzymesSpecifiedType('data/Gold.faa', 'Type II methyltransferase', 'data/Type_II_MT_gold.faa')
-    extractEnzymesSpecifiedType('data/Gold.faa', 'Type II restriction enzyme', 'data/Type_II_RE_gold.faa')
+    extractEnzymesSpecifiedType(rf.get_data('Gold.faa'), 'Type II methyltransferase', rf.get_data('Type_II_MT_gold.faa'))
+    extractEnzymesSpecifiedType(rf.get_data('Gold.faa'), 'Type II restriction enzyme', rf.get_data('Type_II_RE_gold.faa'))
     logging.info('Done!')
 
     # Making lookup tables
-    writeLookupTables('data/Type_II_MT_gold.faa', 'data/Type_II_MT_nonputative.faa', 'data/Type_II_MT_all.faa', 'data/Type_II_MT_dict.txt')
-    writeLookupTables('data/Type_II_RE_gold.faa', 'data/Type_II_RE_nonputative.faa', 'data/Type_II_RE_all.faa', 'data/Type_II_RE_dict.txt')
+    writeLookupTables(rf.get_data('Type_II_MT_gold.faa'), rf.get_data('Type_II_MT_nonputative.faa'), rf.get_data('Type_II_MT_all.faa'), rf.get_data('Type_II_MT_dict.txt'))
+    writeLookupTables(rf.get_data('Type_II_RE_gold.faa'), rf.get_data('Type_II_RE_nonputative.faa'), rf.get_data('Type_II_RE_all.faa'), rf.get_data('Type_II_RE_dict.txt'))
 
     # Make blast databases
     logging.info('\nMaking blast databases...')
-    makeBlastDB('data/Type_II_MT_all.faa')
-    makeBlastDB('data/Type_II_RE_all.faa')
-    makeBlastDB('data/Type_II_MT_nonputative.faa')
-    makeBlastDB('data/Type_II_RE_nonputative.faa')
-    makeBlastDB('data/Type_II_MT_gold.faa')
-    makeBlastDB('data/Type_II_RE_gold.faa')
+    makeBlastDB(rf.get_data('Type_II_MT_all.faa'))
+    makeBlastDB(rf.get_data('Type_II_RE_all.faa'))
+    makeBlastDB(rf.get_data('Type_II_MT_nonputative.faa'))
+    makeBlastDB(rf.get_data('Type_II_RE_nonputative.faa'))
+    makeBlastDB(rf.get_data('Type_II_MT_gold.faa'))
+    makeBlastDB(rf.get_data('Type_II_RE_gold.faa'))
     logging.info('Done!')
 
     # Removing REBASE files
-    os.remove('data/All.txt')
-    os.remove('data/All.faa')
-    os.remove('data/Gold.txt')
-    os.remove('data/Gold.faa')
-    for f in glob.glob('data/*.tmp'):
+    os.remove(rf.get_data('All.txt'))
+    os.remove(rf.get_data('All.faa'))
+    os.remove(rf.get_data('Gold.txt'))
+    os.remove(rf.get_data('Gold.faa'))
+    for f in glob.glob(rf.get_data('*.tmp')):
         os.remove(f)
 
     # Record when files where downloaded
-    with open('data/download.log', 'w') as f:
+    with open(rf.get_data('download.log'), 'w') as f:
         now = datetime.datetime.now()
         format = "%d/%m/%Y %H:%M:%S"
         f.write('Databases last downloaded on {}\n'.format(now.strftime(format)))
