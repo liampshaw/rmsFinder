@@ -145,7 +145,9 @@ def main():
     handlers = [logging.StreamHandler()]
     logging.basicConfig(level = level, format = format, handlers = handlers)
     logging.info('Started updating local REBASE databases.')
-
+    if os.path.exists(rf.get_data('download.log')):
+        last_downloaded = open(rf.get_data('download.log'), 'r').readlines()[0]
+        logging.info(last_downloaded+'. Overwriting these older versions.')
     # Downloading
     logging.info('Downloading all REBASE protein sequences.')
     downloadFromREBASE('protein_seqs.txt',
@@ -197,6 +199,8 @@ def main():
     os.remove(rf.get_data('Gold.faa'))
     for f in glob.glob(rf.get_data('*.tmp')):
         os.remove(f)
+
+    logging.info('\nDatabases all downloaded. Remember to cite REBASE.\n\nRoberts, R.J., Vincze, T., Posfai, J., Macelis, D. (2010)\nREBASE--a database for DNA restriction and modification: enzymes, genes and genomes.\nNucl. Acids Res. 38: D234-D236.\nOfficial REBASE web site - http://rebase.neb.com')
 
     # Record when files where downloaded
     with open(rf.get_data('download.log'), 'w') as f:
