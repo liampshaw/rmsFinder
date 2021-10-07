@@ -9,7 +9,15 @@ import datetime
 
 
 def convertRebaseToFasta(rebase_file, output_fasta):
-    '''Converts downloaded Rebase files to fasta.'''
+    '''Converts downloaded Rebase files to fasta.
+    Args:
+        rebase_file (str)
+            The downloaded filename.
+        output_fasta (str)
+            The filename of the output fasta.
+    Returns:
+        None
+    '''
     headerFlag = True
     with open(output_fasta, 'w') as output:
         for line in open(rebase_file, 'r').readlines():
@@ -24,20 +32,38 @@ def convertRebaseToFasta(rebase_file, output_fasta):
                     line = re.sub(' ', '', line)
                     line = re.sub('<>', '', line)
                     _ = output.write(line)
+    return
 
 def extractEnzymesSpecifiedType(fasta_file, type, output_fasta):
     '''Extracts only protein sequences of a particular type from a converted
     REBASE fasta file (assumes this information is in the fasta descriptions).
-    Only stores those with a known RecSeq.'''
+    Only stores those with a known RecSeq.
+    Args:
+        fasta_file (str)
+            Fasta filename
+        type (str)
+            The desired type of sequence to subset e.g. "Type II methyltransferase"
+        output_fasta (str)
+            The output fasta filename
+    Returns:
+        None
+    '''
     rebase_seqs = SeqIO.to_dict(SeqIO.parse(fasta_file, 'fasta'))
     type_names = [seq for seq in rebase_seqs if type in rebase_seqs[seq].description and 'RecSeq' in rebase_seqs[seq].description]
     type_seqs = [rebase_seqs[record] for record in type_names]
     with open(output_fasta, 'w') as output:
         for record in type_seqs:
             _ = output.write('>%s\n%s\n' % (str(record.description), str(record.seq)))
+    return
 
 def makeBlastDB(db_fasta):
-    '''Makes blast database from a fasta file.'''
+    '''Makes blast database from a fasta file.
+    Args:
+        db_fasta (str)
+            The fasta filename
+    Returns:
+        None
+    '''
     makeblastdb_command = ['makeblastdb',
                         '-in', db_fasta,
                         '-dbtype', 'prot']
@@ -47,7 +73,15 @@ def makeBlastDB(db_fasta):
     return
 
 def downloadFromREBASE(file, output):
-    '''Downloads a file from REBASE.'''
+    '''Downloads a file from REBASE.
+    Args:
+        file (str)
+            The filename on REBASE (full path is added)
+        output (str)
+            Where to save the output.
+    Returns:
+        None
+    '''
     rebase_url = 'ftp://ftp.neb.com/pub/rebase/'
     attempts = 1
     while attempts<4:
@@ -55,14 +89,26 @@ def downloadFromREBASE(file, output):
             wget.download(rebase_url+file, out=output)
             break
         except Exception as e:
-            print("\n  Seemed to encounter error while downloading file: ", file)
+            print("\n  Warning: seemed to encounter error while downloading file: ", file)
             print("  Error code:", e)
-            print("  (if the file downloaded, then you can ignore this)")
+            print("  Will try again. (If the file downloaded based on the byte count, then you can ignore this.)")
             attempts += 1
     return
 
 def writeLookupTables(gold_fasta, nonputative_fasta, all_fasta, output):
-    '''Writes lookup table.'''
+    '''Writes lookup table for the different categories of REBASE sequence.
+    Args:
+        gold_fasta (str)
+            Fasta file with the Gold category proteins.
+        nonputative_fasta (str)
+            Fasta file with the nonputative category proteins.
+        all_fasta (str)
+            Fasta file with all proteins.
+        output (str)
+            Filename to save the text output in.
+    Returns:
+        None
+    '''
     proteins_gold = SeqIO.to_dict(SeqIO.parse(gold_fasta, 'fasta')).keys()
     proteins_nonputative = SeqIO.to_dict(SeqIO.parse(nonputative_fasta, 'fasta')).keys()
     proteins_all = SeqIO.to_dict(SeqIO.parse(all_fasta, 'fasta')).keys()
