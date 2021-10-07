@@ -15,7 +15,15 @@ Type II RMS typically consist of a methytransferase (MTase) and a restriction en
 
 Other RMS types are more complex - they may be added one day.
 
-## Usage
+## Running rmsFinder
+
+Normal usage of rmsFinder looks something like
+
+```
+python rmsFinder.py --genbank {YOUR_GENBANK}.gbk --mode MT,RE --output {YOUR_OUTPUT} --db all
+```
+
+### Setup
 
 Before running rmsFinder for the first time you will need to download the protein database files from REBASE.
 
@@ -25,16 +33,29 @@ python updateDB.py
 
 This should take <2 minutes and requires ~100 MB of storage in the `data` directory after it has run. REBASE is frequently updated with new proteins, so you can use this command to update the database files periodically. Bear in mind your results could change if you update the database between analyses.
 
-Normal usage of rmsFinder - to predict Type II RMS in a genome - looks like
+### Usage
 
 ```
-python rmsFinder.py --genbank {YOUR_GENBANK}.gbk --mode MT,RE --output {YOUR_OUTPUT} --db all
+usage: rmsFinder [-h] (--genbank GENBANK | --fasta FASTA | --updatedb) [--output OUTPUT] [--mode MODE] [--dontcollapse] --db DB
+
+Predict presence of Type II restriction-modification systems in a genome.
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --genbank GENBANK  Genbank file
+  --fasta FASTA      Alternatively: a fasta file (protein)
+  --updatedb         Update databases used (download from REBASE)
+  --output OUTPUT    Output prefix
+  --mode MODE        Mode
+  --dontcollapse     Whether to collapse output to best hit
+  --db DB            Which database to use: gold, regular, all
 ```
 
-The `--db` option allows you to search against three different categories of enzyme sequences in REBASE.  ranging from those with experimental support for their restriction site ('gold') to those that have only been predicted bioinformatically based on similarity to known enzymes ('putative').
+The most important option is probably `--db`, which allows you to search against three different categories of enzyme sequences in REBASE.  ranging from those with experimental support for their restriction site ('gold') to those that have only been predicted bioinformatically based on similarity to known enzymes ('putative').
 * ```gold``` - the highest standard, with experimental support for their restriction site. See [http://rebase.neb.com/cgi-bin/rebgoldlist](here).
 * ```nonputative``` - only those sequences which are not putative
 * ```all``` - includes putative sequences predicted bioinformatically by REBASE based on similarity to existing sequences, but for which no experimental validation is known. In many cases if you are searching an NCBI genome using rmsFinder, you will find a 100% match to a putative prediction for a protein. This is because the REBASE team have already identified it against the existing proteins.  
+
 
 ### Input files
 
@@ -63,7 +84,8 @@ N.B. These global similarities are computed with `Align.PairwiseAligner` from `S
 
 The default threshold for proximity in the genome is <5 genes apart.
 
-These thresholds should be suitable for most uses but can be altered within ```rmsFinder.py``` (to do: add the option to pass a parameter file with thresholds).
+These thresholds should be suitable for most uses but can be altered within ```rmsFinder.py``` (to do: add the option to pass a parameter file with thresholds).  
+
 
 ## Workflow
 
