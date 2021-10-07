@@ -200,7 +200,7 @@ def main():
     for f in glob.glob(rf.get_data('*.tmp')):
         os.remove(f)
 
-    logging.info('\nDatabases all downloaded. Remember to cite REBASE.\n\nRoberts, R.J., Vincze, T., Posfai, J., Macelis, D. (2010)\nREBASE--a database for DNA restriction and modification: enzymes, genes and genomes.\nNucl. Acids Res. 38: D234-D236.\nOfficial REBASE web site - http://rebase.neb.com')
+    logging.info('\nDatabases all downloaded. Remember to cite REBASE.\n\nRoberts, R.J., Vincze, T., Posfai, J., Macelis, D.\nREBASE-a database for DNA restriction and modification: enzymes, genes and genomes.\nNucleic Acids Res. 43: D298-D299 (2015).\ndoi: 10.1093/nar/gku1046\nnOfficial REBASE web site - http://rebase.neb.com')
 
     # Record when files where downloaded
     with open(rf.get_data('download.log'), 'w') as f:
