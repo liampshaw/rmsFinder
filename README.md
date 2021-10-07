@@ -11,7 +11,7 @@ REBASE-a database for DNA restriction and modification: enzymes, genes and genom
 *Nucleic Acids Research* 43: D298-D299 (2015).
 doi: [http://doi.org/10.1093/nar/gku1046](10.1093/nar/gku1046)
 
-Type II RMS typically consist of a methytransferase (MTase) and a restriction enzyme (REase) with the same target specificity, usually located next to each other in the genome.
+Type II RMS typically consist of a methytransferase (MTase) and a restriction enzyme (REase) with the same target specificity, usually located next to each other in the genome. Homologs can have relatively low similarities (~50\%) and still recognise the same target sequence.
 
 Other RMS types are more complex - they may be added one day.
 
@@ -32,9 +32,26 @@ python rmsFinder.py --genbank {YOUR_GENBANK}.gbk --mode MT,RE --output {YOUR_OUT
 ```
 
 The `--db` option allows you to search against three different categories of enzyme sequences in REBASE.  ranging from those with experimental support for their restriction site ('gold') to those that have only been predicted bioinformatically based on similarity to known enzymes ('putative').
-* `gold` - the highest standard, with experimental support for their restriction site. See [http://rebase.neb.com/cgi-bin/rebgoldlist](here).
-* `nonputative` - only those sequences which are not putative
-* `all` - includes putative sequences predicted bioinformatically by REBASE based on similarity to existing sequences, but for which no experimental validation is known. In many cases if you are searching an NCBI genome using rmsFinder, you will find a 100% match to a putative prediction for a protein. This is because the REBASE team have already identified it against the existing proteins.
+* ```gold``` - the highest standard, with experimental support for their restriction site. See [http://rebase.neb.com/cgi-bin/rebgoldlist](here).
+* ```nonputative``` - only those sequences which are not putative
+* ```all``` - includes putative sequences predicted bioinformatically by REBASE based on similarity to existing sequences, but for which no experimental validation is known. In many cases if you are searching an NCBI genome using rmsFinder, you will find a 100% match to a putative prediction for a protein. This is because the REBASE team have already identified it against the existing proteins.
+
+### Input files
+
+rmsFinder takes either genbank or fasta files as input. If using genbank files, these can be easily downloaded from NCBI with `ncbi-acc-download`
+
+```
+
+```
+
+### Thresholds
+
+Default thresholds for the required global similarity required between a protein sequence and its best hit for the prediction of its target specificity to be accurate are those found by Oliveira et al. (2016):
+
+* MTase: 55\%
+* REase: 50\%
+
+N.B. These global similarities are computed with `Align.PairwiseAligner` from `SeqIO`.
 
 ## Workflow
 
