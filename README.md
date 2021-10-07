@@ -10,7 +10,7 @@ Other RMS types are more complex - they may be added one day.
 
 ## Running rmsFinder
 
-Normal usage of rmsFinder looks something like
+Normal usage looks something like
 
 ```
 python rmsFinder.py --genbank {YOUR_GENBANK}.gbk --mode MT,RE --output {YOUR_OUTPUT} --db all
@@ -18,7 +18,7 @@ python rmsFinder.py --genbank {YOUR_GENBANK}.gbk --mode MT,RE --output {YOUR_OUT
 
 ### Setup
 
-Before running rmsFinder for the first time you will need to download the protein database files from REBASE.
+Before running `rmsFinder` for the first time you will need to download the protein database files from REBASE.
 
 ```
 python updateDB.py
@@ -47,12 +47,12 @@ optional arguments:
 The most important option is probably `--db`, which allows you to search against three different categories of enzyme sequences in REBASE.  ranging from those with experimental support for their restriction site ('gold') to those that have only been predicted bioinformatically based on similarity to known enzymes ('putative').
 * ```gold``` - the highest standard, with experimental support for their restriction site. See [http://rebase.neb.com/cgi-bin/rebgoldlist](here).
 * ```nonputative``` - only those sequences which are not putative
-* ```all``` - includes putative sequences predicted bioinformatically by REBASE based on similarity to existing sequences, but for which no experimental validation is known. In many cases if you are searching an NCBI genome using rmsFinder, you will find a 100% match to a putative prediction for a protein. This is because the REBASE team have already identified it against the existing proteins.  
+* ```all``` - includes putative sequences predicted bioinformatically by REBASE based on similarity to existing sequences, but for which no experimental validation is known. In many cases if you are searching an NCBI genome using `rmsFinder`, you will find a 100% match to a putative prediction for a protein. This is because the REBASE team have already identified it against the existing proteins.  
 
 
 ### Input files
 
-rmsFinder takes either genbank or fasta files as input.
+`rmsFinder` takes either genbank or fasta files as input.
 
 Example genbank files can be downloaded from NCBI with ```ncbi-acc-download``` (available [here](https://github.com/kblin/ncbi-acc-download/)), for example:
 
@@ -60,11 +60,13 @@ Example genbank files can be downloaded from NCBI with ```ncbi-acc-download``` (
 ncbi-acc-download NZ_LR025099
 ```
 
-The benefit of a genbank file is that it includes information on the position of the proteins, which is used
+The benefit of a genbank file is that it includes information on the relative positions of the proteins in the genome. If you don't have any positional information, `rmsFinder` won't predict the presence of a RMS.
+
+You can still provide a fasta
 
 ### Thresholds
 
-The usual mode for rmsFinder is to search for MTases and/or REases at the same time (```--mode MT,RE```) and then attempt to predict the presence of Type II RMS (i.e. a MTase and REase with matching specificity, close in the genome). Results for MTases and REases will be stored even if no Type II RMS are found.
+The usual mode for `rmsFinder` is to search for MTases and/or REases at the same time (```--mode MT,RE```) and then attempt to predict the presence of Type II RMS i.e. a MTase and REase with matching specificity, close in the genome. Results for MTases and REases will be stored even if no Type II RMS are found.
 
 There are two sets of thresholds. First, the thresholds required to identify a protein as a putative MTase or REase. These are an e-value of 0.001 and a lateral coverage of >50%.
 
@@ -82,9 +84,9 @@ These thresholds should be suitable for most uses but can be altered within ```r
 
 ## Workflow
 
-Briefly, rmsFinder takes as input a genbank file. It searches for putative Type II MTases using HMMs produced and curated by Pedro Oliveira, available [https://github.com/oliveira-lab/RMS/tree/master/RM_HMMs](here). It then searches for putative Type II REases using blastp (e<0.001) against REBASE sequences (because Type II REases diverge rapidly, producing poor MSAs that are not good for building HMMs).
+Briefly, `rmsFinder` takes a file of protein sequences as input. It searches for putative Type II MTases using HMMs produced and curated by Pedro Oliveira, available [https://github.com/oliveira-lab/RMS/tree/master/RM_HMMs](here). It then searches for putative Type II REases using blastp (e<0.001) against REBASE sequences (because Type II REases diverge rapidly, producing poor MSAs that are not good for building HMMs).
 
-rmsFinder then matches these putative MTases or REases to existing REBASE proteins. If the protein similarity is greater than some user-defined thresholds (defaults: 55% for MTases, 50% for REases), the recognition sequence (RS) of the putative protein is predicted to be the same as the matched protein. Finally, if there exists within the genome a Type II MTase and REase recognising the same RS within 4 or fewer genes of each other, rmsFinder predicts that a Type II RMS recognising that RS is present in the genome. Output files include a list of all putative MTases, REases, and RMS.  
+`rmsFinder` then matches these putative MTases or REases to existing REBASE proteins. If the protein similarity is greater than some user-defined thresholds (defaults: 55% for MTases, 50% for REases), the recognition sequence (RS) of the putative protein is predicted to be the same as the matched protein. Finally, if there exists within the genome a Type II MTase and REase recognising the same RS within 4 or fewer genes of each other, `rmsFinder` predicts that a Type II RMS recognising that RS is present in the genome. Output files include a list of all putative MTases, REases, and RMS.  
 
 This workflow is inspired by the methodology in the following paper:
 
