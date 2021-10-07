@@ -2,14 +2,7 @@
 
 A tool for finding Type II restriction-modification systems (RMS) in bacterial genomes.
 
-Given a fasta file of protein sequences rmsFinder will search these proteins against the REBASE database with the aim of identifying any Type II RMS enzymes that are present. REBASE is a comprehensive and well-maintained database of known restriction enzymes and other associated enzymes. It is regularly updated by its curators.
-
-REBASE citation:
-
-R. J. Roberts, T. Vincze, J. Posfai, D. Macelis  
-REBASE-a database for DNA restriction and modification: enzymes, genes and genomes.  
-*Nucleic Acids Research* 43: D298-D299 (2015).  
-doi: [10.1093/nar/gku1046](http://doi.org/10.1093/nar/gku1046)
+Given a fasta file of protein sequences, `rmsFinder` will search these proteins against the REBASE database to identify Type II RMS enzymes that are present, then try to predict the presence of Type II RMS which recognise a given target sequence.
 
 Type II RMS typically consist of a methytransferase (MTase) and a restriction enzyme (REase) with the same target specificity, usually located next to each other in the genome. Homologs can have relatively low similarities (~50\%) and still recognise the same target sequence.
 
@@ -87,7 +80,7 @@ The default threshold for proximity in the genome is <5 genes apart.
 These thresholds should be suitable for most uses but can be altered within ```rmsFinder.py``` (to do: add the option to pass a parameter file with thresholds).  
 
 
-## Workflow
+## Workflow
 
 Briefly, rmsFinder takes as input a genbank file. It searches for putative Type II MTases using HMMs produced and curated by Pedro Oliveira, available [https://github.com/oliveira-lab/RMS/tree/master/RM_HMMs](here). It then searches for putative Type II REases using blastp (e<0.001) against REBASE sequences (because Type II REases diverge rapidly, producing poor MSAs that are not good for building HMMs).
 
@@ -99,3 +92,15 @@ P. H. Oliveira, M. Touchon, E. P. C. Rocha
 Regulation of genetic flux between bacteria by restriction–modification systems  
 *PNAS* 113 (20) 5658-5663 (2016)  
 doi: [https://doi.org/10.1073/pnas.1603257113](10.1073/pnas.1603257113)
+
+
+## REBASE
+
+`rmsFinder` is only possible because of REBASE: a comprehensive and well-maintained database of known restriction enzymes and other associated enzymes. It is regularly updated by its curators who generously make it both available to all and free to distribute. `rmsFinder` is an independent piece of software and is not affiliated with REBASE.
+
+REBASE citation:
+
+R. J. Roberts, T. Vincze, J. Posfai, D. Macelis  
+REBASE-a database for DNA restriction and modification: enzymes, genes and genomes.  
+*Nucleic Acids Research* 43: D298-D299 (2015).  
+doi: [10.1093/nar/gku1046](http://doi.org/10.1093/nar/gku1046)
