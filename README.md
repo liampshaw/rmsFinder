@@ -24,7 +24,7 @@ Before running `rmsFinder` for the first time you will need to download the prot
 python updateDB.py
 ```
 
-This should take <2 minutes and requires ~100 MB of storage in the `data` directory after it has run. REBASE is frequently updated with new proteins, so you can use this command to update the database files periodically. Bear in mind your results could change if you update the database between analyses.
+This should take several minutes and requires ~100 MB of storage in the `data` directory after it has run. REBASE is frequently updated with new proteins, so you can use this command to update the database files periodically. Bear in mind results could change if you update the database between analyses!
 
 ### Usage
 
@@ -44,13 +44,6 @@ optional arguments:
   --db DB            Which database to use: gold, regular, all
 ```
 
-The most important option is probably `--db`, which allows you to search against three different categories of enzyme sequences in REBASE.  ranging from those with experimental support for their restriction site ('gold') to those that have only been predicted bioinformatically based on similarity to known enzymes ('putative').
-* ```gold``` - the highest standard, with experimental support for their restriction site. See [http://rebase.neb.com/cgi-bin/rebgoldlist](here).
-* ```nonputative``` - only those sequences which are not putative
-* ```all``` - includes putative sequences predicted bioinformatically by REBASE based on similarity to existing sequences, but for which no experimental validation is known. In many cases if you are searching an NCBI genome using `rmsFinder`, you will find a 100% match to a putative prediction for a protein. This is because the REBASE team have already identified it against the existing proteins.  
-
-
-### Input files
 
 `rmsFinder` takes either genbank or fasta files as input.
 
@@ -62,7 +55,15 @@ ncbi-acc-download NZ_LR025099
 
 The benefit of a genbank file is that it includes information on the relative positions of the proteins in the genome. If you don't have any positional information, `rmsFinder` won't predict the presence of a RMS.
 
-You can still provide a fasta
+You can still provide a protein fasta, but should also provide a CDS file that contains a counter in the fasta headers giving the genomic position.
+
+The `--mode` option allows you to only search for MTases (`MT`), REases (`RE`) or both and predict RMS (`MT,RE`).
+
+The most important option is probably `--db`, which allows you to search against three different categories of enzyme sequences in REBASE.  ranging from those with experimental support for their restriction site ('gold') to those that have only been predicted bioinformatically based on similarity to known enzymes ('putative').
+* ```gold``` - the highest standard, with experimental support for their restriction site. See [http://rebase.neb.com/cgi-bin/rebgoldlist](here).
+* ```nonputative``` - only those sequences which are not putative
+* ```all``` - includes putative sequences predicted bioinformatically by REBASE based on similarity to existing sequences, but for which no experimental validation is known. In many cases if you are searching an NCBI genome using `rmsFinder`, you will find a 100% match to a putative prediction for a protein. This is because the REBASE team have already identified it against the existing proteins.  
+
 
 ### Thresholds
 
