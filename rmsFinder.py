@@ -9,8 +9,6 @@ import numpy as np
 import argparse
 import logging
 
-import updateDB
-
 # For absolute paths
 _ROOT = os.path.abspath(os.path.dirname(__file__))
 
@@ -20,7 +18,6 @@ def get_options():
     input_group = parser.add_mutually_exclusive_group(required=True) # mutually exclusive group
     input_group.add_argument('--genbank', help='Genbank file') # either genbank or fasta, but not both.
     input_group.add_argument('--fasta', help='Alternatively: a fasta file (protein)')
-    input_group.add_argument('--updatedb', help='Update databases used (download from REBASE)', action='store_true')
     parser.add_argument('--output', help='Output prefix', required=False)
     parser.add_argument('--mode', help='Mode', required=False)
     parser.add_argument('--dontcollapse', help='Whether to collapse output to best hit', action='store_true')
@@ -483,10 +480,6 @@ def main():
     handlers = [logging.StreamHandler()]
     logging.basicConfig(level = level, format = format, handlers = handlers)
     logging.info('Started running rmsFinder.')
-
-    if args.updatedb is True:
-        updateDB.main()
-        return
 
     if args.db=='gold':
         logging.info('Using only REBASE Gold sequences.')
