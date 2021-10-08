@@ -264,7 +264,7 @@ def parseCounterPreparedFasta(input_fasta):
         if line.startswith('>'):
             entries = line.split()
             protein_id = re.sub('>', '', entries[0])
-            counter_dict[protein_id] = [entries[1], int(entries[2]), entries[3]]
+            counter_dict[protein_id] = [entries[1], int(entries[2]), re.sub('location', '', str(entries[3])), entries[4]]
     return(counter_dict)
 
 def predictRMS(hits_MT, hits_RE, with_position, position_threshold=5, mt_threshold=55, re_threshold=50):
@@ -290,10 +290,10 @@ def predictRMS(hits_MT, hits_RE, with_position, position_threshold=5, mt_thresho
     hits_MT.index = hits_MT['qseqid']
     hits_RE.index = hits_RE['qseqid']
     # Subset to similarities for adding to dataframe
-    hits_MT_subset = hits_MT[['qseqid', 'sseqid', 'similarity']]
-    hits_MT_subset.columns = ['qseqid', 'hit_MT', 'sim_MT']
-    hits_RE_subset = hits_RE[['qseqid', 'sseqid', 'similarity']]
-    hits_RE_subset.columns = ['qseqid', 'hit_RE', 'sim_RE']
+    hits_MT_subset = hits_MT[['qseqid', 'sseqid', 'similarity', 'genomic_location']]
+    hits_MT_subset.columns = ['qseqid', 'hit_MT', 'sim_MT', 'loc_MT']
+    hits_RE_subset = hits_RE[['qseqid', 'sseqid', 'similarity', 'genomic_location']]
+    hits_RE_subset.columns = ['qseqid', 'hit_RE', 'sim_RE', 'loc_RE']
 
     # Check for any intersection of targets
     if with_position==True:
@@ -313,14 +313,15 @@ def predictRMS(hits_MT, hits_RE, with_position, position_threshold=5, mt_thresho
                     if s[2]<position_threshold:
                         # Check if on same contig - think this can return errors
                         if s[3]==True:
-                            rms_entry = [t, s[4], s[5], s[0], s[1], list((hits_MT[hits_MT['position']==s[0]]['qseqid']))[0], list((hits_RE[hits_RE['position']==s[1]]['qseqid']))[0]]
+                            rms_entry = [t, s[4], s[5], s[0], s[1],
+                            list((hits_MT[hits_MT['position']==s[0]]['qseqid']))[0], list((hits_RE[hits_RE['position']==s[1]]['qseqid']))[0]]
                             if rms_entry[3]==rms_entry[4]: # If the hit is for the same protein, don't include it (only want paired RE and MT)
                                 pass
                             else:
                                 predicted_rms.append(rms_entry)
             if len(predicted_rms)!=0:
                 rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'contig', 'contig_description', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
-                # Add similarity scores and best hit
+                # Add locations, similarity scores and best hit
                 rms_results = rms_results.join(hits_MT_subset.set_index('qseqid'), on='prot_MT')
                 rms_results = rms_results.join(hits_RE_subset.set_index('qseqid'), on='prot_RE')
                 logging.info('  Predicted the following R-M systems:')
@@ -418,7 +419,8 @@ def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
             counter_dict = parseCounterPreparedFasta(proteome_fasta)
             blast_hits_MT = blast_hits_MT.assign(contig=[counter_dict[x][0] for x in blast_hits_MT['qseqid']],
                                                 position=[counter_dict[x][1] for x in blast_hits_MT['qseqid']],
-                                                contig_description=[counter_dict[x][2] for x in blast_hits_MT['qseqid']])
+                                                contig_description=[counter_dict[x][2] for x in blast_hits_MT['qseqid']],
+                                                genomic_location=[re.sub('location\\=', '', counter_dict[x][3]) for x in blast_hits_MT['qseqid']])
 
         # Add the global similarity of the best hit. Need to have the sequences available
         blast_hits_MT['similarity'] = blast_hits_MT.apply(lambda row : globalSimilarity(str(protein_seqs[row['qseqid']].seq),
@@ -470,7 +472,8 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
         counter_dict = parseCounterPreparedFasta(proteome_fasta)
         blast_hits_RE_filt = blast_hits_RE_filt.assign(contig=[counter_dict[x][0] for x in blast_hits_RE_filt['qseqid']],
                                                 position=[counter_dict[x][1] for x in blast_hits_RE_filt['qseqid']],
-                                                contig_description=[counter_dict[x][2] for x in blast_hits_RE_filt['qseqid']])
+                                                contig_description=[counter_dict[x][2] for x in blast_hits_RE_filt['qseqid']],
+                                                genomic_location=[re.sub('location\\=', '', counter_dict[x][3]) for x in blast_hits_RE_filt['qseqid']])
 
     # Add the recognition sequences
     blast_hits_RE_filt = blast_hits_RE_filt.assign(target=getRS(blast_hits_RE_filt['sseqid'], REase_fasta))
@@ -508,15 +511,15 @@ def main():
     logging.info('Started running rmsFinder.')
 
     if args.db=='gold':
-        logging.info('Using only REBASE Gold sequences.')
+        logging.info('REBASE database: gold.')
         MT_db = 'Type_II_MT_gold.faa'
         RE_db = 'Type_II_RE_gold.faa'
     elif args.db=='nonputative':
-        logging.info('Using only nonputative REBASE sequences (excluding putative).')
+        logging.info('REBASE database: nonputative.')
         MT_db = 'Type_II_MT_nonputative.faa'
         RE_db = 'Type_II_RE_nonputative.faa'
     elif args.db=='all':
-        logging.info('Using all REBASE sequences (including putative).')
+        logging.info('REBASE database: all.')
         MT_db = 'Type_II_MT_all.faa'
         RE_db = 'Type_II_RE_all.faa'
     else:
@@ -552,6 +555,8 @@ def main():
 
     if mode=='RMS': # Predict RMS
         logging.info('\nPredicting RMS based on MTase and REase presence...')
+        print(MT_hits.columns)
+        print(RE_hits.columns)
         rms_predictions = predictRMS(MT_hits, RE_hits, with_position=include_position)
         if rms_predictions is not None:
             logging.info('Predicted presence of %d Type II R-M systems.' % len(rms_predictions))
