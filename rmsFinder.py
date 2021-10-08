@@ -19,8 +19,8 @@ def get_options():
     input_group.add_argument('--genbank', help='Genbank file') # either genbank or fasta, but not both.
     input_group.add_argument('--fasta', help='Alternatively: a fasta file (protein)')
     parser.add_argument('--output', help='Output prefix', required=False)
-    parser.add_argument('--mode', help='Mode', required=False)
-    parser.add_argument('--dontcollapse', help='Whether to collapse output to best hit', action='store_true')
+    parser.add_argument('--mode', help='Mode of running: RMS, MT, RE, MT+RE (default: RMS)', required=False, default='RMS')
+    parser.add_argument('--dontcollapse', help='Whether to keep all blast hits rather than just top hit blast outputs (default: False)', action='store_true')
     parser.add_argument('--db', help='Which database to use: gold, regular, all', required=True)
     return parser.parse_args()
 
