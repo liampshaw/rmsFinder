@@ -41,7 +41,7 @@ def makeTmpFile(file_path, suffix, prefix='TMP'):
     so that TMP_ file will be in same directory.'''
     if '/' in file_path:
         file_str = re.sub('.*/', '', file_path)
-        preamble_str = file_path[:-len(file)]
+        preamble_str = file_path[:-len(file_str)]
         tmp_path = preamble_str+'TMP_'+file_str+'.'+suffix
     else:
         tmp_path = 'TMP_'+file_path+'.'+suffix
