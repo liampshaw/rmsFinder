@@ -13,6 +13,8 @@ def get_options():
     parser = argparse.ArgumentParser(description='Download REBASE sequences and set up databases for Type II RM systems.',
                                      prog='updateDB')
     parser.add_argument('--force', help='Force overwrite.', required=False, action='store_true')
+    parser.add_argument('--recompile', help='Only make the blast databases again (without redownloading files).', required=False, action='store_true')
+
     return parser.parse_args()
 
 
@@ -65,7 +67,7 @@ def extractEnzymesSpecifiedType(fasta_file, type, output_fasta):
             _ = output.write('>%s\n%s\n' % (str(record.description), str(record.seq)))
     return
 
-def makeBlastDB(db_fasta):
+def makeBlastDB(db_fasta, outdir=rf.get_data('db')):
     '''Makes blast database from a fasta file.
     Args:
         db_fasta (str)
@@ -75,7 +77,8 @@ def makeBlastDB(db_fasta):
     '''
     makeblastdb_command = ['makeblastdb',
                         '-in', db_fasta,
-                        '-dbtype', 'prot']
+                        '-dbtype', 'prot',
+                        '-out', outdir+'/'+db_fasta]
     makeblastdb_process = subprocess.Popen(makeblastdb_command,
                         stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     makeblastdb_out, _ = makeblastdb_process.communicate() # Read the output from stdout
@@ -148,14 +151,18 @@ def main():
     if os.path.exists(rf.get_data('download.log')):
         last_downloaded = open(rf.get_data('download.log'), 'r').readlines()[0]
         logging.info(last_downloaded+'. Overwriting these older versions.')
-    # Downloading
-    logging.info('Downloading all REBASE protein sequences.')
-    downloadFromREBASE('protein_seqs.txt',
-                output=rf.get_data('All.txt'))
+    if not os.path.exists(rf.get_data('db')):
+        os.mkdir(rf.get_data('db'))
 
-    logging.info('\nDownloading all Gold protein sequences.')
-    downloadFromREBASE('protein_gold_seqs.txt',
-                output=rf.get_data('Gold.txt'))
+    # Downloading
+    if not args.recompile:
+        logging.info('Downloading all REBASE protein sequences.')
+        downloadFromREBASE('protein_seqs.txt',
+                    output=rf.get_data('All.txt'))
+
+        logging.info('\nDownloading all Gold protein sequences.')
+        downloadFromREBASE('protein_gold_seqs.txt',
+                    output=rf.get_data('Gold.txt'))
 
     # Converting
     logging.info('\n\nConverting REBASE files to fasta format...')
@@ -164,6 +171,7 @@ def main():
     if os.path.exists(rf.get_data('Gold.txt')):
         convertRebaseToFasta(rf.get_data('Gold.txt'), rf.get_data('Gold.faa'))
     logging.info('Done!')
+
 
     # Extracting Type II
     logging.info('\nExtracting Type II sequences...')
