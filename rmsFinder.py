@@ -15,13 +15,15 @@ _ROOT = os.path.abspath(os.path.dirname(__file__))
 def get_options():
     parser = argparse.ArgumentParser(description='Predict presence of Type II restriction-modification systems in a genome.',
                                      prog='rmsFinder')
+    parser.add_argument('input', nargs='+', help='Input protein file (genbank or fasta).')
+    requiredNamed = parser.add_argument_group('required arguments')
+    requiredNamed.add_argument('--output', help='Output prefix', required=True)
     input_group = parser.add_mutually_exclusive_group(required=True) # mutually exclusive group
-    input_group.add_argument('--genbank', help='Genbank file') # either genbank or fasta, but not both.
-    input_group.add_argument('--fasta', help='Alternatively: a fasta file (protein)')
-    parser.add_argument('--output', help='Output prefix', required=False)
+    input_group.add_argument('--genbank', help='Input file is genbank format', action='store_true', default=False) # either genbank or fasta, but not both.
+    input_group.add_argument('--fasta', help='Input file is fasta format', action='store_true', default=False)
+    parser.add_argument('--db', help='Which database to use: gold, regular, all (default: gold)', required=False, default='gold')
     parser.add_argument('--mode', help='Mode of running: RMS, MT, RE, MT+RE (default: RMS)', required=False, default='RMS')
-    parser.add_argument('--dontcollapse', help='Whether to keep all blast hits rather than just top hit blast outputs (default: False)', action='store_true')
-    parser.add_argument('--db', help='Which database to use: gold, regular, all', required=True)
+    parser.add_argument('--dontcollapse', help='Whether to keep all blast hits for proteins rather than just their top hit (default: False)', action='store_true')
     return parser.parse_args()
 
 
@@ -519,13 +521,13 @@ def main():
         logging.info('ERROR: did not recognise db argument. Choose from: gold, nonputative, all')
         return
 
-    if args.genbank is not None:
-        genbank_file = args.genbank
+    if args.genbank==True:
+        genbank_file = str(args.input[0])
         proteome_fasta = makeTmpFile(genbank_file,'faa')
         parseGenBank(genbank_file, proteome_fasta) # Make fasta file the way we like it
         include_position = True
-    elif args.fasta is not None:
-        proteome_fasta = args.fasta
+    elif args.fasta==True:
+        proteome_fasta = str(args.input[0])
         include_position = False
 
     if mode=='RMS' or 'MT' in mode: # Search for MTases
@@ -554,7 +556,7 @@ def main():
             rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
         else:
             logging.info('Predicted no Type II R-M systems.')
-    if args.genbank is not None:
+    if args.genbank==True:
         os.remove(proteome_fasta) # Remove the proteome fasta we made
 
 
