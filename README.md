@@ -31,21 +31,29 @@ This should take several minutes and requires ~100 MB of storage in the `data` d
 ```
 usage: rmsFinder [-h] (--genbank GENBANK | --fasta FASTA | --updatedb) [--output OUTPUT] [--mode MODE] [--dontcollapse] --db DB
 
-Predict presence of Type II restriction-modification systems in a genome.
+Predict presence of Type II restriction-modification
+systems in a genome.
+
+positional arguments:
+  input            Input protein file (genbank or fasta).
 
 optional arguments:
-  -h, --help         show this help message and exit
-  --genbank GENBANK  Genbank file
-  --fasta FASTA      Alternatively: a fasta file (protein)
-  --updatedb         Update databases used (download from REBASE)
-  --output OUTPUT    Output prefix
-  --mode MODE        Mode
-  --dontcollapse     Whether to collapse output to best hit
-  --db DB            Which database to use: gold, regular, all
+  -h, --help       show this help message and exit
+  --genbank        Input file is genbank format
+  --fasta          Input file is fasta format
+  --db DB          Which database to use: gold, regular,
+                   all (default: gold)
+  --mode MODE      Mode of running: RMS, MT, RE, MT+RE
+                   (default: RMS)
+  --dontcollapse   Whether to keep all blast hits for
+                   proteins rather than just their top
+                   hit (default: False)
+
+required arguments:
+  --output OUTPUT  Output prefix
 ```
 
-
-`rmsFinder` takes either genbank or fasta files as input.
+`input': The input file. `rmsFinder` takes either genbank or fasta files as input, which you should flag with either `--genbank` or `--fasta` flag.
 
 Example genbank files can be downloaded from NCBI with ```ncbi-acc-download``` (available [here](https://github.com/kblin/ncbi-acc-download/)), for example:
 
@@ -53,17 +61,20 @@ Example genbank files can be downloaded from NCBI with ```ncbi-acc-download``` (
 ncbi-acc-download NZ_LR025099
 ```
 
-The benefit of a genbank file is that it includes information on the relative positions of the proteins in the genome. If you don't have any positional information, `rmsFinder` won't predict the presence of a RMS.
+The benefit of providing a genbank file is that it includes information on the relative positions of the proteins in the genome, including contig localisation. This allows `rmsFinder` to use a positional threshold to predict the presence of a given RMS.
 
-You can still provide a protein fasta, but should also provide a CDS file that contains a counter in the fasta headers giving the genomic position.
+Alternatively, you can provide a protein fasta. In this case, `rmsFinder` will predict RMS but will not use any positional information i.e. the presence of an MTase and REase recognising the same target sequence is sufficient. (to do: add support for gff input)
 
-The `--mode` option allows you to only search for MTases (`MT`), REases (`RE`) or both and predict RMS (`MT,RE`).
+`--output`: The prefix for output files. Under normal running, three output files are created: `output_MT.csv`, `output_RE.csv` and `output_RMS.csv`.
 
-The most important option is probably `--db`, which allows you to search against three different categories of enzyme sequences in REBASE.  ranging from those with experimental support for their restriction site ('gold') to those that have only been predicted bioinformatically based on similarity to known enzymes ('putative').
+`--db`: This allows you to search against three different categories of enzyme sequences in REBASE.  ranging from those with experimental support for their restriction site ('gold') to those that have only been predicted bioinformatically based on similarity to known enzymes ('putative').
 * ```gold``` - the highest standard, with experimental support for their restriction site. See [http://rebase.neb.com/cgi-bin/rebgoldlist](here).
 * ```nonputative``` - only those sequences which are not putative
 * ```all``` - includes putative sequences predicted bioinformatically by REBASE based on similarity to existing sequences, but for which no experimental validation is known. In many cases if you are searching an NCBI genome using `rmsFinder`, you will find a 100% match to a putative prediction for a protein. This is because the REBASE team have already identified it against the existing proteins.  
 
+`--mode`: The default is to search for MTases and REases and then predict RMS. You can also only search for MTases (`MT`), REases (`RE`) or both but without RMS prediction (`MT+RE`).
+
+`--dontcollapse`: The default is to keep only the top blast hit for a protein. However, it is sometimes useful to inspect all the hits that meet the threshold for a given protein. 
 
 ### Thresholds
 
