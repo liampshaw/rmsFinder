@@ -528,7 +528,7 @@ def main():
         proteome_fasta = args.fasta
         include_position = False
 
-    if 'MT' in mode: # Search for MTases
+    if mode=='RMS' or 'MT' in mode: # Search for MTases
         logging.info('\nSearching for MTases...')
         MT_hits = searchMTasesTypeII(proteome_fasta, include_position, collapse=collapse_hits, MTase_db=MT_db, MT_lookup='Type_II_MT_dict.txt')
         if MT_hits is not None:
@@ -536,7 +536,8 @@ def main():
         else:
             logging.info('  No MTase hits.')
         logging.info('Finished searching for MTases.')
-    if 'RE' in mode: # Search for REases
+
+    if mode=='RMS' or 'RE' in mode: # Search for REases
         logging.info('\nSearching for REases...')
         RE_hits = searchREasesTypeII(proteome_fasta, include_position, collapse=collapse_hits, REase_db=RE_db, RE_lookup='Type_II_RE_dict.txt')
         if RE_hits is not None:
@@ -544,10 +545,10 @@ def main():
         else:
             logging.info('  No MTase hits.')
         logging.info('Finished searching for REases.')
-    if 'RE' in mode and 'MT' in mode: # Predict R-M systems if both searched for
+
+    if mode=='RMS': # Predict RMS
         logging.info('\nPredicting RMS based on MTase and REase presence...')
         rms_predictions = predictRMS(MT_hits, RE_hits, with_position=include_position)
-        #print(rms_predictions)
         if rms_predictions is not None:
             logging.info('Predicted presence of %d Type II R-M systems.' % len(rms_predictions))
             rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
