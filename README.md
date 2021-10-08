@@ -13,8 +13,10 @@ Other RMS types are more complex - they may be added one day.
 Normal usage looks something like
 
 ```
-python rmsFinder.py --genbank {YOUR_GENBANK}.gbk --mode MT,RE --output {YOUR_OUTPUT} --db all
+python rmsFinder.py genome.gbk --genbank --output results_genome
 ```
+
+More detailed arguments can be specified - see below.
 
 ### Setup
 
@@ -74,7 +76,7 @@ Alternatively, you can provide a protein fasta. In this case, `rmsFinder` will p
 
 `--mode`: The default is to search for MTases and REases and then predict RMS. You can also only search for MTases (`MT`), REases (`RE`) or both but without RMS prediction (`MT+RE`).
 
-`--dontcollapse`: The default is to keep only the top blast hit for a protein. However, it is sometimes useful to inspect all the hits that meet the threshold for a given protein. 
+`--dontcollapse`: The default is to keep only the top blast hit for a protein. However, it is sometimes useful to inspect all the hits that meet the threshold for a given protein.
 
 ### Thresholds
 
