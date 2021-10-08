@@ -263,18 +263,18 @@ def parseCounterPreparedFasta(input_fasta):
             counter_dict[protein_id] = [entries[1], int(entries[2]), entries[3]]
     return(counter_dict)
 
-def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_threshold=50):
+def predictRMS(hits_MT, hits_RE, with_position, position_threshold=5, mt_threshold=55, re_threshold=50):
     '''Predicts RM system based on tables of hits to MTases and REases.
     Args:
         hits_MT (DataFrame)
             Hits to MTases
         hits_RE (DataFrame)
             Hits to REases
-        position_threshold (int)
-            Proteins need to be < this threshold to count as system present
-        Optional: mt_threshold, re_threshold (int)
+        with_position (Bool)
+            Whether to include positional information in making prediction.
+        Default arguments: mt_threshold, re_threshold, position_threshold (int)
             Similarity thresholds required to rely on prediction of target sequence.
-            Default are the values 55% (MTase) and 50% (REase) from Oliveira 2016
+            Default are the values 55% (MTase) and 50% (REase) from Oliveira 2016. And position_threshold is <5.
     Returns:
         predicted_rms (list)
             Target sequences as keys with MT and RE proteins and positions stored as values
@@ -292,40 +292,60 @@ def predictRMS(hits_MT, hits_RE, position_threshold=5, mt_threshold=55, re_thres
     hits_RE_subset.columns = ['qseqid', 'hit_RE', 'sim_RE']
 
     # Check for any intersection of targets
-    target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
-    if len(target_overlap) > 0:
-        predicted_rms = []
+    if with_position==True:
+        target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
+        if len(target_overlap) > 0:
+            predicted_rms = []
 
-        for t in target_overlap:
-            MT_positions = list(hits_MT[hits_MT['target']==t]['position'])
-            MT_contigs = list(hits_MT[hits_MT['target']==t]['contig'])
-            RE_positions = list(hits_RE[hits_RE['target']==t]['position'])
-            RE_contigs = list(hits_RE[hits_RE['target']==t]['contig'])
-            MT_contig_descriptions = list(hits_MT[hits_MT['target']==t]['contig_description'])
-            # Want all pairwise combinations of these
-            separations = [(x, y, abs(x-y), MT_contigs[MT_positions.index(x)]==RE_contigs[RE_positions.index(y)], MT_contigs[MT_positions.index(x)], MT_contig_descriptions[MT_positions.index(x)]) for x in MT_positions for y in RE_positions] # List of tuples storing position of MT and RE and separation
-            for s in separations:
-                if s[2]<position_threshold:
-                    # Check if on same contig - think this can return errors
-                    if s[3]==True:
-                        rms_entry = [t, s[4], s[5], s[0], s[1], list((hits_MT[hits_MT['position']==s[0]]['qseqid']))[0], list((hits_RE[hits_RE['position']==s[1]]['qseqid']))[0]]
-                        if rms_entry[3]==rms_entry[4]: # If the hit is for the same protein, don't include it (only want paired RE and MT)
-                            pass
-                        else:
-                            predicted_rms.append(rms_entry)
-        if len(predicted_rms)!=0:
+            for t in target_overlap:
+                MT_positions = list(hits_MT[hits_MT['target']==t]['position'])
+                MT_contigs = list(hits_MT[hits_MT['target']==t]['contig'])
+                RE_positions = list(hits_RE[hits_RE['target']==t]['position'])
+                RE_contigs = list(hits_RE[hits_RE['target']==t]['contig'])
+                MT_contig_descriptions = list(hits_MT[hits_MT['target']==t]['contig_description'])
+                # Want all pairwise combinations of these
+                separations = [(x, y, abs(x-y), MT_contigs[MT_positions.index(x)]==RE_contigs[RE_positions.index(y)], MT_contigs[MT_positions.index(x)], MT_contig_descriptions[MT_positions.index(x)]) for x in MT_positions for y in RE_positions] # List of tuples storing position of MT and RE and separation
+                for s in separations:
+                    if s[2]<position_threshold:
+                        # Check if on same contig - think this can return errors
+                        if s[3]==True:
+                            rms_entry = [t, s[4], s[5], s[0], s[1], list((hits_MT[hits_MT['position']==s[0]]['qseqid']))[0], list((hits_RE[hits_RE['position']==s[1]]['qseqid']))[0]]
+                            if rms_entry[3]==rms_entry[4]: # If the hit is for the same protein, don't include it (only want paired RE and MT)
+                                pass
+                            else:
+                                predicted_rms.append(rms_entry)
+            if len(predicted_rms)!=0:
+                rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'contig', 'contig_description', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
+                # Add similarity scores and best hit
+                rms_results = rms_results.join(hits_MT_subset.set_index('qseqid'), on='prot_MT')
+                rms_results = rms_results.join(hits_RE_subset.set_index('qseqid'), on='prot_RE')
+                logging.info('  Predicted the following R-M systems:')
+                for rms in predicted_rms:
+                            logging.info(rms)
+                return(rms_results)
+            else:
+                return(None)
+        else:
+            return(None)
+    elif with_position==False:
+        target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
+        if len(target_overlap) > 0:
+            predicted_rms = []
+            for t in target_overlap:
+                MT_matches = ','.join(hits_MT[hits_MT['target']==t]['qseqid'])
+                RE_matches = ''.join(hits_RE[hits_RE['target']==t]['qseqid'])
+                rms_entry = [t, 'unknown', 'unknown', 'unknown', 'unknown', MT_matches, RE_matches]
+                predicted_rms.append(rms_entry)
+
             rms_results = pd.DataFrame(predicted_rms, columns=['sequence', 'contig', 'contig_description', 'pos_MT', 'pos_RE', 'prot_MT', 'prot_RE'])
             # Add similarity scores and best hit
             rms_results = rms_results.join(hits_MT_subset.set_index('qseqid'), on='prot_MT')
             rms_results = rms_results.join(hits_RE_subset.set_index('qseqid'), on='prot_RE')
-            logging.info('  Predicted the following R-M systems:')
-            for rms in predicted_rms:
-                        logging.info(rms)
             return(rms_results)
+
         else:
             return(None)
-    else:
-        return(None)
+
 
 def readLookupDict(dict_file):
     '''Reads in lookup dictionary file and returns dict.'''
@@ -336,13 +356,13 @@ def readLookupDict(dict_file):
         lookup_dict[line[0]] = line[1]
     return lookup_dict
 
-def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, MTase_db='Type_II_MT_all.faa', MT_lookup='Type_II_MT_dict.txt'):
+def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, MTase_db='Type_II_MT_all.faa', MT_lookup='Type_II_MT_dict.txt'):
     '''Searches for Type II MTases.
     Args:
         proteome_fasta (str)
             Fasta file of proteins.
-        cds_from_genomic_fasta (str)
-            Fasta file of untranslated nucleotides of cds (contains counter info.)
+        with_position (Bool)
+            Whether positional info is included in the fasta or not, in headers of the form ">protein contig counter".
         evalue_threshold (float)
             Threshold to keep hits at. Default 0.001 as in Oliveira 2016
         coverage_threshold (float)
@@ -351,7 +371,8 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
         blast_hits_collapse (DataFrame)
             DataFrame of best hits, collapsed to one row per protein
     '''
-    MTase_db_file = get_data(MTase_db)
+    MTase_fasta = get_data(MTase_db)
+    MTase_blastdb = get_data('db/'+MTase_db)
 
     # Using Oliveira Type II MTase HMM profiles to search
     hmm_dict_MT = searchHMM(proteome_fasta, get_data('Type_II_MTases.hmm'))
@@ -368,10 +389,10 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
     subsetFasta(proteome_fasta, list(hits_MT_filt.keys()), tmp_fasta)
 
     # Blast these hits against all Type II MTases to find best matches
-    blast_hits_MT = blastpAgainstDB(tmp_fasta, MTase_db_file, db_built=True)
+    blast_hits_MT = blastpAgainstDB(tmp_fasta, MTase_blastdb, db_built=True)
     # Store the sequences for global alignment
     protein_seqs = SeqIO.to_dict(SeqIO.parse(tmp_fasta, 'fasta'))
-    rebase_seqs = SeqIO.to_dict(SeqIO.parse(MTase_db_file, 'fasta'))
+    rebase_seqs = SeqIO.to_dict(SeqIO.parse(MTase_fasta, 'fasta'))
     # Remove tmp fasta file
     os.remove(tmp_fasta)
     logging.info('  (blast) %d MTase-protein hits.' % len(blast_hits_MT))
@@ -385,11 +406,11 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
         blast_hits_MT = blast_hits_MT.assign(coverage_threshold_met=list(blast_hits_MT['length'] > coverage_threshold*blast_hits_MT['qlen'])) # Condition of 50% coverage as in Oliveira 2016
 
         # Get the recognition sites of the best hits
-        rs_MT = getRS(blast_hits_MT['sseqid'], MTase_db_file)
+        rs_MT = getRS(blast_hits_MT['sseqid'], MTase_fasta)
         blast_hits_MT = blast_hits_MT.assign(target=rs_MT)
 
         # Add genomic position if requested
-        if cds_from_genomic_fasta==True:
+        if with_position==True:
             counter_dict = parseCounterPreparedFasta(proteome_fasta)
             blast_hits_MT = blast_hits_MT.assign(contig=[counter_dict[x][0] for x in blast_hits_MT['qseqid']],
                                                 position=[counter_dict[x][1] for x in blast_hits_MT['qseqid']],
@@ -411,13 +432,13 @@ def searchMTasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
         else:
             return(blast_hits_MT)
 
-def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, REase_db='protein_seqs_Type_II_REases.faa', RE_lookup='Type_II_RE_dict.txt'):
+def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, REase_db='protein_seqs_Type_II_REases.faa', RE_lookup='Type_II_RE_dict.txt'):
     '''Searches a file of proteins against all known REases.
     Args:
         proteome_fasta (str)
             Fasta file with proteins
-        cds_from_genomic_fasta (str)
-            Fasta file of untranslated nucleotides of cds
+        with_position (Bool)
+            Whether positional info is included in the fasta or not, in headers of the form ">protein contig counter".
         evalue_threshold (float)
             Threshold to filter blast hits at. Default: 0.001 as in Oliveira 2016
         coverage_threshold (float)
@@ -427,11 +448,12 @@ def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
             DataFrame of best hits, one row per protein
     '''
     # Blasting for REases
-    REase_db_file = get_data(REase_db)
-    blast_hits_RE = blastpAgainstDB(proteome_fasta, REase_db_file, db_built=True)
+    REase_fasta = get_data(REase_db)
+    REase_blastdb = get_data('db/'+REase_db)
+    blast_hits_RE = blastpAgainstDB(proteome_fasta, REase_blastdb, db_built=True)
     # Store the sequences for global alignment
     protein_seqs = SeqIO.to_dict(SeqIO.parse(proteome_fasta, 'fasta'))
-    rebase_seqs = SeqIO.to_dict(SeqIO.parse(REase_db_file, 'fasta'))
+    rebase_seqs = SeqIO.to_dict(SeqIO.parse(REase_fasta, 'fasta'))
 
     # Filter out hits
     blast_hits_RE = blast_hits_RE.assign(coverage_threshold_met=list(blast_hits_RE['length'] > coverage_threshold*blast_hits_RE['qlen'])) # Condition of 50% coverage as in Oliveira 2016
@@ -440,14 +462,14 @@ def searchREasesTypeII(proteome_fasta, cds_from_genomic_fasta=False, evalue_thre
     logging.info('  (blast_filtered) %d protein-REase hits.' % len(blast_hits_RE))
 
     # Add genomic position, if requested
-    if cds_from_genomic_fasta==True:
+    if with_position==True:
         counter_dict = parseCounterPreparedFasta(proteome_fasta)
         blast_hits_RE_filt = blast_hits_RE_filt.assign(contig=[counter_dict[x][0] for x in blast_hits_RE_filt['qseqid']],
                                                 position=[counter_dict[x][1] for x in blast_hits_RE_filt['qseqid']],
                                                 contig_description=[counter_dict[x][2] for x in blast_hits_RE_filt['qseqid']])
 
     # Add the recognition sequences
-    blast_hits_RE_filt = blast_hits_RE_filt.assign(target=getRS(blast_hits_RE_filt['sseqid'], REase_db_file))
+    blast_hits_RE_filt = blast_hits_RE_filt.assign(target=getRS(blast_hits_RE_filt['sseqid'], REase_fasta))
 
     # Add the global similarity of the best hit
     blast_hits_RE_filt['similarity'] = blast_hits_RE_filt.apply(lambda row : globalSimilarity(str(protein_seqs[row['qseqid']].seq),
@@ -501,12 +523,14 @@ def main():
         genbank_file = args.genbank
         proteome_fasta = makeTmpFile(genbank_file,'faa')
         parseGenBank(genbank_file, proteome_fasta) # Make fasta file the way we like it
+        include_position = True
     elif args.fasta is not None:
         proteome_fasta = args.fasta
+        include_position = False
 
     if 'MT' in mode: # Search for MTases
         logging.info('\nSearching for MTases...')
-        MT_hits = searchMTasesTypeII(proteome_fasta, True, collapse=collapse_hits, MTase_db=MT_db, MT_lookup='Type_II_MT_dict.txt')
+        MT_hits = searchMTasesTypeII(proteome_fasta, include_position, collapse=collapse_hits, MTase_db=MT_db, MT_lookup='Type_II_MT_dict.txt')
         if MT_hits is not None:
             MT_hits.to_csv(output+'_MT.csv', index=False, float_format="%.3f")
         else:
@@ -514,22 +538,23 @@ def main():
         logging.info('Finished searching for MTases.')
     if 'RE' in mode: # Search for REases
         logging.info('\nSearching for REases...')
-        RE_hits = searchREasesTypeII(proteome_fasta, True, collapse=collapse_hits, REase_db=RE_db, RE_lookup='Type_II_RE_dict.txt')
+        RE_hits = searchREasesTypeII(proteome_fasta, include_position, collapse=collapse_hits, REase_db=RE_db, RE_lookup='Type_II_RE_dict.txt')
         if RE_hits is not None:
             RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
         else:
             logging.info('  No MTase hits.')
         logging.info('Finished searching for REases.')
     if 'RE' in mode and 'MT' in mode: # Predict R-M systems if both searched for
-        logging.info('\nPredicting R-M systems based on MTase and REase presence...')
-        rms_predictions = predictRMS(MT_hits, RE_hits)
+        logging.info('\nPredicting RMS based on MTase and REase presence...')
+        rms_predictions = predictRMS(MT_hits, RE_hits, with_position=include_position)
         #print(rms_predictions)
         if rms_predictions is not None:
             logging.info('Predicted presence of %d Type II R-M systems.' % len(rms_predictions))
             rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
         else:
             logging.info('Predicted no Type II R-M systems.')
-    os.remove(proteome_fasta) # Remove the proteome fasta we made
+    if args.genbank is not None:
+        os.remove(proteome_fasta) # Remove the proteome fasta we made
 
 
 if __name__ == "__main__":
