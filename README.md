@@ -55,7 +55,7 @@ required arguments:
   --output OUTPUT  Output prefix
 ```
 
-`input': The input file. `rmsFinder` takes either genbank or fasta files as input, which you should flag with either `--genbank` or `--fasta` flag.
+`input`: The input file. `rmsFinder` takes either genbank or fasta files as input, which you should flag with either `--genbank` or `--fasta` flag.
 
 Example genbank files can be downloaded from NCBI with ```ncbi-acc-download``` (available [here](https://github.com/kblin/ncbi-acc-download/)), for example:
 
