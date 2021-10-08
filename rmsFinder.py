@@ -203,7 +203,9 @@ def parseGenBank(genbank_file, genbank2fasta_output):
                         if protein_id in observed_proteins: # don't write if already written
                             pass
                         else:
-                            f.write('>%s %s %s %s product="%s"\n%s\n' % (protein_id, record_name, counter, record_type, feature.qualifiers['product'][0], feature.qualifiers['translation'][0]))
+                            f.write('>%s %s %s %s location=%s product="%s"\n%s\n' % (protein_id, record_name, counter, record_type,
+                            str(feature.location), feature.qualifiers['product'][0],
+                            feature.qualifiers['translation'][0]))
                             observed_proteins.append(protein_id)
     if gzipFlag==True: # Gzip if we gunzipped
         gzip_command = ['gzip', genbank_file]
