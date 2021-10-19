@@ -439,7 +439,7 @@ def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
         else:
             return(blast_hits_MT)
 
-def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, REase_db='protein_seqs_Type_II_REases.faa', RE_lookup='Type_II_RE_dict.txt'):
+def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, REase_db='protein_seqs_Type_II_REases.faa', RE_lookup='Type_II_RE_dict.txt', hmm=False):
     '''Searches a file of proteins against all known REases.
     Args:
         proteome_fasta (str)
@@ -457,10 +457,34 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     # Blasting for REases
     REase_fasta = get_data(REase_db)
     REase_blastdb = get_data('db/'+REase_db)
-    blast_hits_RE = blastpAgainstDB(proteome_fasta, REase_blastdb, db_built=True)
-    # Store the sequences for global alignment
-    protein_seqs = SeqIO.to_dict(SeqIO.parse(proteome_fasta, 'fasta'))
-    rebase_seqs = SeqIO.to_dict(SeqIO.parse(REase_fasta, 'fasta'))
+
+    if hmm is not False:
+        hmm_dict_RE = searchHMM(proteome_fasta, hmm)
+        logging.info('  (hmm_raw) %d proteins matched REases.' % len(hmm_dict_RE))
+
+        # Filter hits
+        hits_RE_filt = {k:v for k,v in hmm_dict_RE.items() if float(v[3])<evalue_threshold}
+        logging.info('  (hmm_filtered) %d proteins matched REases.' % len(hits_RE_filt))
+        #print(hits_MT_filt)
+
+        # Subset only the hits out from the proteome
+        tmp_fasta = makeTmpFile(proteome_fasta,'_RE.faa')
+        subsetFasta(proteome_fasta, list(hits_RE_filt.keys()), tmp_fasta)
+
+        # Blast these hits against all Type II MTases to find best matches
+        blast_hits_RE = blastpAgainstDB(tmp_fasta, REase_blastdb, db_built=True)
+        # Store the sequences for global alignment
+        protein_seqs = SeqIO.to_dict(SeqIO.parse(tmp_fasta, 'fasta'))
+        rebase_seqs = SeqIO.to_dict(SeqIO.parse(REase_fasta, 'fasta'))
+        # Remove tmp fasta file
+        os.remove(tmp_fasta)
+        logging.info('  (blast) %d REase-protein hits.' % len(blast_hits_RE))
+
+    else:
+        blast_hits_RE = blastpAgainstDB(proteome_fasta, REase_blastdb, db_built=True)
+        # Store the sequences for global alignment
+        protein_seqs = SeqIO.to_dict(SeqIO.parse(proteome_fasta, 'fasta'))
+        rebase_seqs = SeqIO.to_dict(SeqIO.parse(REase_fasta, 'fasta'))
 
     # Filter out hits
     blast_hits_RE = blast_hits_RE.assign(coverage_threshold_met=list(blast_hits_RE['length'] > coverage_threshold*blast_hits_RE['qlen'])) # Condition of 50% coverage as in Oliveira 2016
@@ -557,8 +581,11 @@ def main():
 
     if mode=='RMS' or 'RE' in mode: # Search for REases
         logging.info('\nSearching for REases...')
-
-        RE_hits = searchREasesTypeII(proteome_fasta, include_position, collapse=collapse_hits, REase_db=RE_db, RE_lookup='Type_II_RE_dict.txt')
+        if args.hmm=='tesson':
+            RE_hmm = get_data('defense-finder/Type_II_REases.hmm')
+        else:
+            RE_hmm = False
+        RE_hits = searchREasesTypeII(proteome_fasta, include_position, collapse=collapse_hits, REase_db=RE_db, RE_lookup='Type_II_RE_dict.txt', hmm=RE_hmm)
         if RE_hits is not None:
             RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
         else:
