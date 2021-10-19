@@ -24,6 +24,7 @@ def get_options():
     parser.add_argument('--db', help='Which database to use: gold, regular, all (default: gold)', required=False, default='gold')
     parser.add_argument('--mode', help='Mode of running: RMS, MT, RE, MT+RE (default: RMS)', required=False, default='RMS')
     parser.add_argument('--dontcollapse', help='Whether to keep all blast hits for proteins rather than just their top hit (default: False)', action='store_true')
+    parser.add_argument('--hmm', help='Which HMM to use', required=False, default='oliveira')
     return parser.parse_args()
 
 
@@ -361,7 +362,7 @@ def readLookupDict(dict_file):
         lookup_dict[line[0]] = line[1]
     return lookup_dict
 
-def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, MTase_db='Type_II_MT_all.faa', MT_lookup='Type_II_MT_dict.txt'):
+def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, MTase_db='Type_II_MT_all.faa', MT_lookup='Type_II_MT_dict.txt', hmm=get_data('Type_II_MTases.hmm')):
     '''Searches for Type II MTases.
     Args:
         proteome_fasta (str)
@@ -380,7 +381,7 @@ def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     MTase_blastdb = get_data('db/'+MTase_db)
 
     # Using Oliveira Type II MTase HMM profiles to search
-    hmm_dict_MT = searchHMM(proteome_fasta, get_data('Type_II_MTases.hmm'))
+    hmm_dict_MT = searchHMM(proteome_fasta, hmm)
     logging.info('  (hmm_raw) %d proteins matched MTases.' % len(hmm_dict_MT))
     #print(hmm_dict_MT)
 
@@ -510,6 +511,16 @@ def main():
     logging.basicConfig(level = level, format = format, handlers = handlers)
     logging.info('Started running rmsFinder.')
 
+    if args.hmm=='oliveira':
+        MTase_hmm = get_data('Type_II_MTases.hmm')
+        logging.info('HMM: Oliveira.')
+    elif args.hmm=='tesson':
+        MTase_hmm = get_data('defense-finder/Type_II_MTases.hmm')
+        logging.info('HMM: Tesson (defenseFinder)')
+    else:
+        MTase_hmm = get_data('Type_II_MTases.hmm')
+        logging.info('HMM not recognised. Using HMM: Oliveira.')
+
     if args.db=='gold':
         logging.info('REBASE database: gold.')
         MT_db = 'Type_II_MT_gold.faa'
@@ -537,7 +548,7 @@ def main():
 
     if mode=='RMS' or 'MT' in mode: # Search for MTases
         logging.info('\nSearching for MTases...')
-        MT_hits = searchMTasesTypeII(proteome_fasta, include_position, collapse=collapse_hits, MTase_db=MT_db, MT_lookup='Type_II_MT_dict.txt')
+        MT_hits = searchMTasesTypeII(proteome_fasta, include_position, collapse=collapse_hits, MTase_db=MT_db, MT_lookup='Type_II_MT_dict.txt', hmm=MTase_hmm)
         if MT_hits is not None:
             MT_hits.to_csv(output+'_MT.csv', index=False, float_format="%.3f")
         else:
@@ -546,6 +557,7 @@ def main():
 
     if mode=='RMS' or 'RE' in mode: # Search for REases
         logging.info('\nSearching for REases...')
+
         RE_hits = searchREasesTypeII(proteome_fasta, include_position, collapse=collapse_hits, REase_db=RE_db, RE_lookup='Type_II_RE_dict.txt')
         if RE_hits is not None:
             RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
@@ -555,8 +567,6 @@ def main():
 
     if mode=='RMS': # Predict RMS
         logging.info('\nPredicting RMS based on MTase and REase presence...')
-        print(MT_hits.columns)
-        print(RE_hits.columns)
         rms_predictions = predictRMS(MT_hits, RE_hits, with_position=include_position)
         if rms_predictions is not None:
             logging.info('Predicted presence of %d Type II R-M systems.' % len(rms_predictions))
