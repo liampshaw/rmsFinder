@@ -478,7 +478,6 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
         rebase_seqs = SeqIO.to_dict(SeqIO.parse(REase_fasta, 'fasta'))
         # Remove tmp fasta file
         os.remove(tmp_fasta)
-        logging.info('  (blast) %d REase-protein hits.' % len(blast_hits_RE))
 
     else:
         blast_hits_RE = blastpAgainstDB(proteome_fasta, REase_blastdb, db_built=True)
