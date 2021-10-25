@@ -632,7 +632,8 @@ def main():
 
     if mode=='RMS': # Predict RMS
         logging.info('\nPredicting RMS based on MTase and REase presence...')
-        rms_predictions = predictRMS(MT_hits, RE_hits, with_position=include_position)
+        if MT_hits is not None and RE_hits is not None:
+            rms_predictions = predictRMS(MT_hits, RE_hits, with_position=include_position)
         if rms_predictions is not None:
             logging.info('Predicted presence of %d Type II R-M systems.' % len(rms_predictions))
             rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
