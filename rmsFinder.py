@@ -617,7 +617,7 @@ def main():
             RE_hmm = get_data('defense-finder/Type_II_REases.hmm')
         else:
             RE_hmm = False
-        RE_hits = searchREasesTypeII(proteome_fasta, include_position, collapse=collapse_hits, REase_db=RE_db, RE_lookup='Type_II_RE_dict.txt', hmm=RE_hmm)
+        RE_hits = searchREasesTypeII(proteome_fasta, with_position=include_position, collapse=collapse_hits, REase_db=RE_db, RE_lookup='Type_II_RE_dict.txt', hmm=RE_hmm)
         if RE_hits is not None:
             RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
         else:
