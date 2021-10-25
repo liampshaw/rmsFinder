@@ -530,6 +530,8 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     # Add the recognition sequences
     blast_hits_RE = blast_hits_RE_filt.assign(target=getRS(blast_hits_RE_filt['sseqid'], REase_fasta))
 
+    print(blast_hits_RE)
+
     # Add the global similarity of the best hit. Need to have the sequences available
     blast_hits_RE['similarity'] = blast_hits_RE.apply(lambda row : globalSimilarity(str(protein_seqs[row['qseqid']].seq),
                  str(rebase_seqs[row['sseqid']].seq)), axis = 1)
