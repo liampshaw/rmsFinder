@@ -485,6 +485,8 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     # Blasting for REases
     REase_fasta = get_data(REase_db)
     REase_blastdb = get_data('db/'+REase_db)
+    print(REase_fasta)
+    print(REase_blastdb)
 
     if hmm is not False:
         hmm_dict_RE = searchHMM(proteome_fasta, hmm)
@@ -499,7 +501,7 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
         tmp_fasta = makeTmpFile(proteome_fasta,'_RE.faa')
         subsetFasta(proteome_fasta, list(hits_RE_filt.keys()), tmp_fasta)
 
-        # Blast these hits against all Type II MTases to find best matches
+        # Blast these hits against all Type II REases to find best matches
         blast_hits_RE = blastpAgainstDB(tmp_fasta, REase_blastdb, db_built=True)
         # Store the sequences for global alignment
         protein_seqs = SeqIO.to_dict(SeqIO.parse(tmp_fasta, 'fasta'))
