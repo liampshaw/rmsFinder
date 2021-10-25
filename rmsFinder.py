@@ -411,12 +411,10 @@ def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     # Using Oliveira Type II MTase HMM profiles to search
     hmm_dict_MT = searchHMM(proteome_fasta, hmm)
     logging.info('  (hmm_raw) %d proteins matched MTases.' % len(hmm_dict_MT))
-    #print(hmm_dict_MT)
 
     # Filter hits
     hits_MT_filt = {k:v for k,v in hmm_dict_MT.items() if float(v[3])<evalue_threshold}
     logging.info('  (hmm_filtered) %d proteins matched MTases.' % len(hits_MT_filt))
-    #print(hits_MT_filt)
 
     # Subset only the hits out from the proteome
     tmp_fasta = makeTmpFile(proteome_fasta,'_MT.faa')
@@ -430,7 +428,6 @@ def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     # Remove tmp fasta file
     os.remove(tmp_fasta)
     logging.info('  (blast) %d MTase-protein hits.' % len(blast_hits_MT))
-    #print(blast_hits_MT)
 
     # If no hits?
     if blast_hits_MT is None:
@@ -485,8 +482,6 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     # Blasting for REases
     REase_fasta = get_data(REase_db)
     REase_blastdb = get_data('db/'+REase_db)
-    print(REase_fasta)
-    print(REase_blastdb)
 
     if hmm is not False:
         hmm_dict_RE = searchHMM(proteome_fasta, hmm)
@@ -495,7 +490,6 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
         # Filter hits
         hits_RE_filt = {k:v for k,v in hmm_dict_RE.items() if float(v[3])<evalue_threshold}
         logging.info('  (hmm_filtered) %d proteins matched REases.' % len(hits_RE_filt))
-        #print(hits_MT_filt)
 
         # Subset only the hits out from the proteome
         tmp_fasta = makeTmpFile(proteome_fasta,'_RE.faa')
@@ -520,7 +514,6 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     logging.info('  (blast_raw) %d protein-REase hits.' % len(blast_hits_RE))
     blast_hits_RE_filt = blast_hits_RE[blast_hits_RE['coverage_threshold_met']==True]
     logging.info('  (blast_filtered) %d protein-REase hits.' % len(blast_hits_RE))
-    print(blast_hits_RE_filt)
 
     # Add genomic position, if requested
     if with_position==True and len(blast_hits_RE_filt)>0:
@@ -533,7 +526,6 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     # Add the recognition sequences
     blast_hits_RE = blast_hits_RE_filt.assign(target=getRS(blast_hits_RE_filt['sseqid'], REase_fasta))
 
-    print(blast_hits_RE)
 
     # Add the global similarity of the best hit. Need to have the sequences available
     if len(blast_hits_RE)>0:
