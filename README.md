@@ -78,7 +78,7 @@ Alternatively, you can provide a protein fasta. In this case, `rmsFinder` will p
 
 `--dontcollapse`: The default is to keep only the top blast hit for a protein. However, it is sometimes useful to inspect all the hits that meet the threshold for a given protein.
 
-`--hmm`: by default uses Oliveira HMMs. However, DefenseFinder HMMs for Type II REases and MTases can be used with `--hmm tesson`. 
+`--hmm`: by default uses Oliveira HMMs. However, more recent HMMs can be used with [https://github.com/mdmparis/defense-finder-models/tree/master/profiles](DefenseFinder) HMMs for Type II REases and MTases can be used with `--hmm tesson`, which may recover more systems for some clades. 
 
 ### Thresholds
 
