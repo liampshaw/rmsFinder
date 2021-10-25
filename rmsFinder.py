@@ -520,6 +520,7 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     logging.info('  (blast_raw) %d protein-REase hits.' % len(blast_hits_RE))
     blast_hits_RE_filt = blast_hits_RE[blast_hits_RE['coverage_threshold_met']==True]
     logging.info('  (blast_filtered) %d protein-REase hits.' % len(blast_hits_RE))
+    print(blast_hits_RE_filt)
 
     # Add genomic position, if requested
     if with_position==True:
