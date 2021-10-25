@@ -31,10 +31,11 @@ This should take several minutes and requires ~100 MB of storage in the `data` d
 ### Usage
 
 ```
-usage: rmsFinder [-h] (--genbank GENBANK | --fasta FASTA | --updatedb) [--output OUTPUT] [--mode MODE] [--dontcollapse] --db DB
+usage: rmsFinder [-h] --output OUTPUT (--genbank | --fasta | --panacotafasta) [--db DB]
+                 [--mode MODE] [--dontcollapse] [--hmm HMM]
+                 input [input ...]
 
-Predict presence of Type II restriction-modification
-systems in a genome.
+Predict presence of Type II restriction-modification systems in a genome.
 
 positional arguments:
   input            Input protein file (genbank or fasta).
@@ -43,19 +44,18 @@ optional arguments:
   -h, --help       show this help message and exit
   --genbank        Input file is genbank format
   --fasta          Input file is fasta format
-  --db DB          Which database to use: gold, regular,
-                   all (default: gold)
-  --mode MODE      Mode of running: RMS, MT, RE, MT+RE
-                   (default: RMS)
-  --dontcollapse   Whether to keep all blast hits for
-                   proteins rather than just their top
-                   hit (default: False)
+  --panacotafasta  Input file is protein fasta output from panacota
+  --db DB          Which database to use: gold, regular, all (default: gold)
+  --mode MODE      Mode of running: RMS, MT, RE, MT+RE (default: RMS)
+  --dontcollapse   Whether to keep all blast hits for proteins rather than just their
+                   top hit (default: False)
+  --hmm HMM        Which HMM to use
 
 required arguments:
   --output OUTPUT  Output prefix
 ```
 
-`input`: The input file. `rmsFinder` takes either genbank or fasta files as input, which you should flag with either `--genbank` or `--fasta` flag.
+`input`: The input file. `rmsFinder` takes either genbank or fasta files as input, which you should flag with either `--genbank` or `--fasta` flag. You can also specify `--panacotafasta` where the protein fasta is as outputted by `PanACoTA annotate` on a nucleotide fasta.
 
 Example genbank files can be downloaded from NCBI with ```ncbi-acc-download``` (available [here](https://github.com/kblin/ncbi-acc-download/)), for example:
 
@@ -77,6 +77,8 @@ Alternatively, you can provide a protein fasta. In this case, `rmsFinder` will p
 `--mode`: The default is to search for MTases and REases and then predict RMS. You can also only search for MTases (`MT`), REases (`RE`) or both but without RMS prediction (`MT+RE`).
 
 `--dontcollapse`: The default is to keep only the top blast hit for a protein. However, it is sometimes useful to inspect all the hits that meet the threshold for a given protein.
+
+`--hmm`: by default uses Oliveira HMMs. However, DefenseFinder HMMs for Type II REases and MTases can be used with `--hmm tesson`. 
 
 ### Thresholds
 
