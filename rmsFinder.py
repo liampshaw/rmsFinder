@@ -19,8 +19,9 @@ def get_options():
     requiredNamed = parser.add_argument_group('required arguments')
     requiredNamed.add_argument('--output', help='Output prefix', required=True)
     input_group = parser.add_mutually_exclusive_group(required=True) # mutually exclusive group
-    input_group.add_argument('--genbank', help='Input file is genbank format', action='store_true', default=False) # either genbank or fasta, but not both.
+    input_group.add_argument('--genbank', help='Input file is genbank format', action='store_true', default=False) # either genbank, fasta, or panacotafasta, but not both.
     input_group.add_argument('--fasta', help='Input file is fasta format', action='store_true', default=False)
+    input_group.add_argument('--panacotafasta', help='Input file is protein fasta output from panacota', action='store_true', default=False)
     parser.add_argument('--db', help='Which database to use: gold, regular, all (default: gold)', required=False, default='gold')
     parser.add_argument('--mode', help='Mode of running: RMS, MT, RE, MT+RE (default: RMS)', required=False, default='RMS')
     parser.add_argument('--dontcollapse', help='Whether to keep all blast hits for proteins rather than just their top hit (default: False)', action='store_true')
@@ -212,6 +213,33 @@ def parseGenBank(genbank_file, genbank2fasta_output):
         gzip_command = ['gzip', genbank_file]
         gzip_process = subprocess.Popen(gzip_command,stdout = subprocess.PIPE, stderr = subprocess.PIPE)
         gzip_process.wait()
+    return
+
+def parsePanacota(panacota_fasta_file, panacota2fasta_output):
+    '''Parses a Panacota fasta file into a fasta of proteins formatted the expected way for rmsFinder.
+    Args:
+        panacota_fasta_file (str)
+            Panacota protein file
+        panacota2fasta_output (str)
+            Output fasta file
+    Returns:
+        None
+    '''
+    protein_dict = {}
+    with open(panacota2fasta_output, 'w') as f:
+        observed_proteins = []
+        for record in SeqIO.parse(panacota_fasta_file, 'fasta'): # there can be multiple records
+            protein_id = record.name
+            protein_description = record.description
+            record_type = 'unknown'
+            if 'chromosome' in protein_description:
+                record_type = 'chromosome'
+            elif 'plasmid' in protein_description:
+                record_type = 'plasmid'
+            counter = int(re.sub('.*_', '', protein_id))
+            record_name = re.sub('_.*', '', protein_id)[:-2]
+            f.write('>%s %s %s %s location=%s product="%s"\n%s\n' % (protein_id, record_name, counter, record_type,'unknown', 'unknown', str(record.seq)))
+            observed_proteins.append(protein_id)
     return
 
 
@@ -568,6 +596,11 @@ def main():
     elif args.fasta==True:
         proteome_fasta = str(args.input[0])
         include_position = False
+    elif args.panacotafasta==True:
+        panacota_file = str(args.input[0])
+        proteome_fasta = makeTmpFile(panacota_file,'faa')
+        parsePanacota(panacota_file, proteome_fasta) # Make fasta file the way we like it
+        include_position = True
 
     if mode=='RMS' or 'MT' in mode: # Search for MTases
         logging.info('\nSearching for MTases...')
