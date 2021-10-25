@@ -632,6 +632,7 @@ def main():
 
     if mode=='RMS': # Predict RMS
         logging.info('\nPredicting RMS based on MTase and REase presence...')
+        rms_predictions = None
         if len(MT_hits)>0 and len(RE_hits)>0: # check some hits exist
             rms_predictions = predictRMS(MT_hits, RE_hits, with_position=include_position)
         if rms_predictions is not None:
