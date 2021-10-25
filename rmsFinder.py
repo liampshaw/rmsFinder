@@ -523,7 +523,7 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     print(blast_hits_RE_filt)
 
     # Add genomic position, if requested
-    if with_position==True:
+    if with_position==True and len(blast_hits_RE_filt)>0:
         counter_dict = parseCounterPreparedFasta(proteome_fasta)
         blast_hits_RE_filt = blast_hits_RE_filt.assign(contig=[counter_dict[x][0] for x in blast_hits_RE_filt['qseqid']],
                                                 position=[counter_dict[x][1] for x in blast_hits_RE_filt['qseqid']],
@@ -536,16 +536,17 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     print(blast_hits_RE)
 
     # Add the global similarity of the best hit. Need to have the sequences available
-    blast_hits_RE['similarity'] = blast_hits_RE.apply(lambda row : globalSimilarity(str(protein_seqs[row['qseqid']].seq),
-                 str(rebase_seqs[row['sseqid']].seq)), axis = 1)
+    if len(blast_hits_RE)>0:
+        blast_hits_RE['similarity'] = blast_hits_RE.apply(lambda row : globalSimilarity(str(protein_seqs[row['qseqid']].seq),
+                     str(rebase_seqs[row['sseqid']].seq)), axis = 1)
 
-    # Add the quality of the hit
-    RE_lookup_dict = readLookupDict(RE_lookup)
-    blast_hits_RE['hit_type'] = blast_hits_RE.apply(lambda row : RE_lookup_dict[row['sseqid']], axis=1)
+        # Add the quality of the hit
+        RE_lookup_dict = readLookupDict(RE_lookup)
+        blast_hits_RE['hit_type'] = blast_hits_RE.apply(lambda row : RE_lookup_dict[row['sseqid']], axis=1)
 
 
     # Collapse the table to best hits
-    if collapse==True:
+    if collapse==True and len(blast_hits_RE)>0:
         blast_hits_collapse = collapseBestHits(blast_hits_RE)
         logging.info('  (blast_filtered) %d putative REases.' % len(blast_hits_collapse))
 
