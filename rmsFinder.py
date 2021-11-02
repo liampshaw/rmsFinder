@@ -629,8 +629,13 @@ def main():
             rms_predictions = predictRMS(MT_hits, RE_hits, with_position=include_position)
         if rms_predictions is not None:
             logging.info('Predicted presence of %d Type II R-M systems.' % len(rms_predictions))
-            rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
+            if len(rms_predictions)>0:
+                rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
+            else:
+                pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
+                logging.info('Predicted no Type II R-M systems.')
         else:
+            pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
             logging.info('Predicted no Type II R-M systems.')
     if os.path.exists(proteome_fasta):
         os.remove(proteome_fasta) # Remove the proteome fasta we made
