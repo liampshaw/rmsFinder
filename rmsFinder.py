@@ -632,7 +632,7 @@ def main():
             rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
         else:
             logging.info('Predicted no Type II R-M systems.')
-    if args.genbank==True:
+    if os.path.exists(proteome_fasta):
         os.remove(proteome_fasta) # Remove the proteome fasta we made
 
 
