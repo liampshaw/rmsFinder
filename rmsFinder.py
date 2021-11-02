@@ -237,7 +237,7 @@ def parsePanacota(panacota_fasta_file, panacota2fasta_output):
             elif 'plasmid' in protein_description:
                 record_type = 'plasmid'
             counter = int(re.sub('.*_', '', protein_id))
-            record_name = re.sub('_.*', '', protein_id)[:-2]
+            record_name = re.sub('_.*', '', protein_id)[:-1]
             f.write('>%s %s %s %s location=%s product="%s"\n%s\n' % (protein_id, record_name, counter, record_type,'unknown', 'unknown', str(record.seq)))
             observed_proteins.append(protein_id)
     return
