@@ -606,6 +606,7 @@ def main():
         if MT_hits is not None:
             MT_hits.to_csv(output+'_MT.csv', index=False, float_format="%.3f")
         else:
+            pd.DataFrame(None).to_csv(output+'_MT.csv', index=False)
             logging.info('  No MTase hits.')
         logging.info('Finished searching for MTases.')
 
@@ -619,6 +620,7 @@ def main():
         if RE_hits is not None:
             RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
         else:
+            pd.DataFrame(None).to_csv(output+'_RE.csv', index=False)
             logging.info('  No MTase hits.')
         logging.info('Finished searching for REases.')
 
