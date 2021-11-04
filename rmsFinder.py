@@ -640,6 +640,12 @@ def main():
             pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
             logging.info('Predicted no Type II R-M systems.')
         else:
+            if len(MT_hits)==0:
+                pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
+                logging.info('Predicted no Type II R-M systems.')
+            if len(RE_hits)==0:
+                pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
+                logging.info('Predicted no Type II R-M systems.')
             if len(MT_hits)>0 and len(RE_hits)>0: # check some hits exist
                 rms_predictions = predictRMS(MT_hits, RE_hits, with_position=include_position)
             if rms_predictions is not None:
