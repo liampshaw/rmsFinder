@@ -511,7 +511,7 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
         protein_seqs = SeqIO.to_dict(SeqIO.parse(proteome_fasta, 'fasta'))
         rebase_seqs = SeqIO.to_dict(SeqIO.parse(REase_fasta, 'fasta'))
     # Check if no hits!
-    if blast_hits_RE==None:
+    if blast_hits_RE is None:
         return(blast_hits_RE)
     # Filter out hits
     blast_hits_RE = blast_hits_RE.assign(coverage_threshold_met=list(blast_hits_RE['length'] > coverage_threshold*blast_hits_RE['qlen'])) # Condition of 50% coverage as in Oliveira 2016
