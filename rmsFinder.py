@@ -633,7 +633,10 @@ def main():
     if mode=='RMS': # Predict RMS
         logging.info('\nPredicting RMS based on MTase and REase presence...')
         rms_predictions = None
-        if MT_hits==None or RE_hits==None:
+        if (MT_hits is None): 
+            pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
+            logging.info('Predicted no Type II R-M systems.')
+        elif (RE_hits is None):
             pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
             logging.info('Predicted no Type II R-M systems.')
         else:
