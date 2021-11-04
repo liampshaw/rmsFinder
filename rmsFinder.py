@@ -435,6 +435,8 @@ def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     else:
         # Filter coverage threshold - add
         blast_hits_MT = blast_hits_MT.assign(coverage_threshold_met=list(blast_hits_MT['length'] > coverage_threshold*blast_hits_MT['qlen'])) # Condition of 50% coverage as in Oliveira 2016
+        if blast_hits_MT is None:
+            return
 
         # Get the recognition sites of the best hits
         rs_MT = getRS(blast_hits_MT['sseqid'], MTase_fasta)
@@ -631,18 +633,19 @@ def main():
     if mode=='RMS': # Predict RMS
         logging.info('\nPredicting RMS based on MTase and REase presence...')
         rms_predictions = None
-        if len(MT_hits)>0 and len(RE_hits)>0: # check some hits exist
-            rms_predictions = predictRMS(MT_hits, RE_hits, with_position=include_position)
-        if rms_predictions is not None:
-            logging.info('Predicted presence of %d Type II R-M systems.' % len(rms_predictions))
-            if len(rms_predictions)>0:
-                rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
-            else:
-                pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
-                logging.info('Predicted no Type II R-M systems.')
-        else:
+        if MT_hits==None or RE_hits==None:
             pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
             logging.info('Predicted no Type II R-M systems.')
+        else:
+            if len(MT_hits)>0 and len(RE_hits)>0: # check some hits exist
+                rms_predictions = predictRMS(MT_hits, RE_hits, with_position=include_position)
+            if rms_predictions is not None:
+                logging.info('Predicted presence of %d Type II R-M systems.' % len(rms_predictions))
+                if len(rms_predictions)>0:
+                    rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
+                else:
+                    pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
+                    logging.info('Predicted no Type II R-M systems.')
     if os.path.exists(proteome_fasta):
         os.remove(proteome_fasta) # Remove the proteome fasta we made
 
