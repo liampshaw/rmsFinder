@@ -659,8 +659,8 @@ def main():
             else:
                 pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
                 logging.info('Predicted no Type II R-M systems.')
-    if os.path.exists(proteome_fasta):
-        os.remove(proteome_fasta) # Remove the proteome fasta we made
+    if os.path.exists(proteome_fasta) and args.fasta!=True:
+        os.remove(proteome_fasta) # Remove the proteome fasta we made, if indeed we made it
 
 
 if __name__ == "__main__":
