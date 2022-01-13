@@ -435,16 +435,19 @@ def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     rebase_seqs = SeqIO.to_dict(SeqIO.parse(MTase_fasta, 'fasta'))
     # Remove tmp fasta file
     os.remove(tmp_fasta)
-    print(blast_hits_MT)
+
 
     # If no hits?
     if blast_hits_MT is None:
+        # Log the blast hits
+        logging.info('  (blast) 0 MTase-protein hits.')
         return
     else:
+        # Log the blast hits
         logging.info('  (blast) %d MTase-protein hits.' % len(blast_hits_MT))
-        # Filter coverage threshold - add
+        # Filter coverage threshold
         blast_hits_MT = blast_hits_MT.assign(coverage_threshold_met=list(blast_hits_MT['length'] > coverage_threshold*blast_hits_MT['qlen'])) # Condition of 50% coverage as in Oliveira 2016. # TODO - decide if this additional threshold is needed
-        logging.info('  (blast_raw) %d protein-MTase hits.' % len(blast_hits_MT))
+        logging.info('  (blast_cov_filtered) %d protein-MTase hits.' % len(blast_hits_MT))
         if blast_hits_MT is None:
             return
 
