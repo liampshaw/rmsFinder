@@ -435,7 +435,7 @@ def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     rebase_seqs = SeqIO.to_dict(SeqIO.parse(MTase_fasta, 'fasta'))
     # Remove tmp fasta file
     os.remove(tmp_fasta)
-
+    print(blast_hits_MT)
 
     # If no hits?
     if blast_hits_MT is None:
@@ -443,7 +443,8 @@ def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     else:
         logging.info('  (blast) %d MTase-protein hits.' % len(blast_hits_MT))
         # Filter coverage threshold - add
-        blast_hits_MT = blast_hits_MT.assign(coverage_threshold_met=list(blast_hits_MT['length'] > coverage_threshold*blast_hits_MT['qlen'])) # Condition of 50% coverage as in Oliveira 2016
+        blast_hits_MT = blast_hits_MT.assign(coverage_threshold_met=list(blast_hits_MT['length'] > coverage_threshold*blast_hits_MT['qlen'])) # Condition of 50% coverage as in Oliveira 2016. # TODO - decide if this additional threshold is needed
+        logging.info('  (blast_raw) %d protein-MTase hits.' % len(blast_hits_MT))
         if blast_hits_MT is None:
             return
 
@@ -500,8 +501,7 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
 
         # Filter hits
         hits_RE_filt = {k:v for k,v in hmm_dict_RE.items() if float(v[3])<evalue_threshold}
-        logging.info('  (hmm_filtered) %d proteins matched REases.' % len(hits_RE_filt))
-
+        logging.info('  (hmm_evalue_filtered) %d proteins matched REases.' % len(hits_RE_filt))
         # Subset only the hits out from the proteome
         tmp_fasta = makeTmpFile(proteome_fasta,'_RE.faa')
         subsetFasta(proteome_fasta, list(hits_RE_filt.keys()), tmp_fasta)
@@ -523,13 +523,13 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     if blast_hits_RE is None:
         return(blast_hits_RE)
     # Filter out hits
-    blast_hits_RE = blast_hits_RE.assign(coverage_threshold_met=list(blast_hits_RE['length'] > coverage_threshold*blast_hits_RE['qlen'])) # Condition of 50% coverage as in Oliveira 2016
+    blast_hits_RE = blast_hits_RE.assign(coverage_threshold_met=list(blast_hits_RE['length'] > coverage_threshold*blast_hits_RE['qlen'])) # Condition of 50% coverage as in Oliveira 2016. # TODO - decide if this additional threshold is needed
     logging.info('  (blast_raw) %d protein-REase hits.' % len(blast_hits_RE))
     if blast_hits_RE is None:
         return(blast_hits_RE)
     blast_hits_RE_filt = blast_hits_RE[blast_hits_RE['coverage_threshold_met']==True]
-    logging.info('  (blast_filtered) %d protein-REase hits.' % len(blast_hits_RE))
-
+    logging.info('  (blast_cov_filtered) %d protein-REase hits.' % len(blast_hits_RE_filt))
+    
     # Add genomic position, if requested
     if with_position==True and len(blast_hits_RE_filt)>0:
         counter_dict = parseCounterPreparedFasta(proteome_fasta)
@@ -550,7 +550,6 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
         # Add the quality of the hit
         RE_lookup_dict = readLookupDict(RE_lookup)
         blast_hits_RE['hit_type'] = blast_hits_RE.apply(lambda row : RE_lookup_dict[row['sseqid']], axis=1)
-
 
     # Collapse the table to best hits
     if collapse==True and len(blast_hits_RE)>0:
