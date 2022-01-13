@@ -319,13 +319,16 @@ def predictRMS(hits_MT, hits_RE, with_position, position_threshold=5, mt_thresho
     hits_MT.index = hits_MT['qseqid']
     hits_RE.index = hits_RE['qseqid']
     # Subset to similarities for adding to dataframe
-    hits_MT_subset = hits_MT[['qseqid', 'sseqid', 'similarity', 'genomic_location']]
-    hits_MT_subset.columns = ['qseqid', 'hit_MT', 'sim_MT', 'loc_MT']
-    hits_RE_subset = hits_RE[['qseqid', 'sseqid', 'similarity', 'genomic_location']]
-    hits_RE_subset.columns = ['qseqid', 'hit_RE', 'sim_RE', 'loc_RE']
-
+    
+  
     # Check for any intersection of targets
     if with_position==True:
+        # Subset to relevant columns (with genomic location - assumes all passed in correctly which is a somewhat dangerous assumption)
+        hits_MT_subset = hits_MT[['qseqid', 'sseqid', 'similarity', 'genomic_location']]
+        hits_MT_subset.columns = ['qseqid', 'hit_MT', 'sim_MT', 'loc_MT']
+        hits_RE_subset = hits_RE[['qseqid', 'sseqid', 'similarity', 'genomic_location']]
+        hits_RE_subset.columns = ['qseqid', 'hit_RE', 'sim_RE', 'loc_RE']
+        
         target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
         if len(target_overlap) > 0:
             predicted_rms = []
@@ -362,6 +365,11 @@ def predictRMS(hits_MT, hits_RE, with_position, position_threshold=5, mt_thresho
         else:
             return(None)
     elif with_position==False:
+        # Subset to relevant columns
+        hits_MT_subset = hits_MT[['qseqid', 'sseqid', 'similarity']]
+        hits_MT_subset.columns = ['qseqid', 'hit_MT', 'sim_MT']
+        hits_RE_subset = hits_RE[['qseqid', 'sseqid', 'similarity']]
+        hits_RE_subset.columns = ['qseqid', 'hit_RE', 'sim_RE']
         target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
         if len(target_overlap) > 0:
             predicted_rms = []
