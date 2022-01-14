@@ -26,6 +26,7 @@ def get_options():
     parser.add_argument('--mode', help='Mode of running: RMS, MT, RE, MT+RE (default: RMS)', required=False, default='RMS')
     parser.add_argument('--dontcollapse', help='Whether to keep all blast hits for proteins rather than just their top hit (default: False)', action='store_true')
     parser.add_argument('--hmm', help='Which HMM to use', required=False, default='oliveira')
+    parser.add_argument('--forceprocessing', help='Forces processing of the input', required=False, action='store_true')
     return parser.parse_args()
 
 
@@ -616,6 +617,24 @@ def main():
         proteome_fasta = makeTmpFile(panacota_file,'faa')
         parsePanacota(panacota_file, proteome_fasta) # Make fasta file the way we like it
         include_position = True
+    
+    # Check proteome fasta
+    with open(proteome_fasta, 'r') as f:
+        first_line = f.readline()
+        if not first_line.startswith('>'):
+            logging.info('ERROR: protein fasta file does not appear to be a fasta.')
+            return
+        else:
+            file_characters = [x.upper() for x in list(f.readline().strip('\n'))]
+            nt_characters = {'A', 'T', 'C', 'G', 'N', '-', 'X'} # Possible characters in nucleotide fasta
+            sum_of_nt_characters = sum([file_characters.count(character) for character in nt_characters])
+            if sum_of_nt_characters==len(file_characters):
+                logging.info('ERROR:\tyou appear to have passed in a nucleotide fasta  (second line of file contains only {ATCGXN-}).\n\trmsFinder needs a protein fasta file as input.\n\tIf you want rmsFinder to process this file anyway then rerun with --forceprocessing.')
+                if args.forceprocessing:
+                    logging.info('WARNING: proceeding as requested with analysis anyway.')
+                else:
+                    return
+
 
     if mode=='RMS' or 'MT' in mode: # Search for MTases
         logging.info('\nSearching for MTases...')
