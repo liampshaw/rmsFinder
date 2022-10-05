@@ -1,10 +1,10 @@
 # rmsFinder
 
-A tool for finding Type II restriction-modification systems (RMS) in bacterial genomes.
+A tool for finding Type II restriction-modification systems (RMS) in bacterial genomes and predicting their target sequences. 
 
-Given a fasta file of protein sequences, `rmsFinder` will search these proteins against the REBASE database to identify Type II RMS enzymes that are present, then try to predict the presence of Type II RMS which recognise a given target sequence.
+Given a fasta file of protein sequences, `rmsFinder` will search these proteins against the REBASE database to identify Type II RMS enzymes that are present, then try to predict their target sequences. This can be done at different stringencies of evidence. 
 
-Type II RMS typically consist of a methytransferase (MTase) and a restriction enzyme (REase) with the same target specificity, usually located next to each other in the genome. Homologs can have relatively low similarities (~50\%) and still recognise the same target sequence.
+Type II RMS usually consist of a methytransferase (MTase) and a restriction enzyme (REase) with the same target specificity, usually located next to each other in the genome. Homologs can have relatively low similarities (~50\%) and still recognise the same target sequence.
 
 Other RMS types are more complex - they may be added one day.
 
