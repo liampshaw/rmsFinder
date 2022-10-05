@@ -8,6 +8,20 @@ Type II RMS typically consist of a methytransferase (MTase) and a restriction en
 
 Other RMS types are more complex - they may be added one day.
 
+## Workflow
+
+The workflow is inspired by the methodology in the following paper:
+
+P. H. Oliveira, M. Touchon, E. P. C. Rocha  
+Regulation of genetic flux between bacteria by restriction–modification systems  
+*PNAS* 113 (20) 5658-5663 (2016)  
+doi: [https://doi.org/10.1073/pnas.1603257113](10.1073/pnas.1603257113)
+
+Briefly, `rmsFinder` takes a file of protein sequences as input. It searches for putative Type II MTases using HMMs. One can specify either the HMMs produced and curated by Pedro Oliveira, available [https://github.com/oliveira-lab/RMS/tree/master/RM_HMMs](here) (`hmm oliveira`) or those produced by Tesson et al. for [https://github.com/mdmparis/defense-finder-models/tree/master/profiles](DefenseFinder) (`--hmm tesson`). It then searches for putative Type II REases using blastp (e<0.001) against REBASE sequences (because Type II REases diverge rapidly, producing poor MSAs that are not good for building HMMs). 
+
+`rmsFinder` then matches these putative MTases or REases to existing REBASE proteins. If the protein similarity is greater than some user-defined thresholds (defaults: 55% for MTases, 50% for REases), the recognition sequence (RS) of the putative protein is predicted to be the same as the matched protein. Finally, if there exists within the genome a Type II MTase and REase recognising the same RS within 4 or fewer genes of each other, `rmsFinder` predicts that a Type II RMS recognising that RS is present in the genome. Output files include a list of all putative MTases, REases, and RMS.  
+
+
 ## Running rmsFinder
 
 Normal usage looks something like
@@ -96,20 +110,6 @@ N.B. These global similarities are computed with `Align.PairwiseAligner` from `S
 The default threshold for proximity in the genome is <5 genes apart.
 
 These thresholds should be suitable for most uses but can be altered within ```rmsFinder.py``` (to do: add the option to pass a parameter file with thresholds).  
-
-
-## Workflow
-
-Briefly, `rmsFinder` takes a file of protein sequences as input. It searches for putative Type II MTases using HMMs produced and curated by Pedro Oliveira, available [https://github.com/oliveira-lab/RMS/tree/master/RM_HMMs](here). It then searches for putative Type II REases using blastp (e<0.001) against REBASE sequences (because Type II REases diverge rapidly, producing poor MSAs that are not good for building HMMs).
-
-`rmsFinder` then matches these putative MTases or REases to existing REBASE proteins. If the protein similarity is greater than some user-defined thresholds (defaults: 55% for MTases, 50% for REases), the recognition sequence (RS) of the putative protein is predicted to be the same as the matched protein. Finally, if there exists within the genome a Type II MTase and REase recognising the same RS within 4 or fewer genes of each other, `rmsFinder` predicts that a Type II RMS recognising that RS is present in the genome. Output files include a list of all putative MTases, REases, and RMS.  
-
-This workflow is inspired by the methodology in the following paper:
-
-P. H. Oliveira, M. Touchon, E. P. C. Rocha  
-Regulation of genetic flux between bacteria by restriction–modification systems  
-*PNAS* 113 (20) 5658-5663 (2016)  
-doi: [https://doi.org/10.1073/pnas.1603257113](10.1073/pnas.1603257113)
 
 
 ## REBASE
