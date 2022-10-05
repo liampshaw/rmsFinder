@@ -34,6 +34,8 @@ More detailed arguments can be specified - see below.
 
 ### Setup
 
+(TO ADD: conda installation)
+
 Before running `rmsFinder` for the first time you will need to download the protein database files from REBASE.
 
 ```
