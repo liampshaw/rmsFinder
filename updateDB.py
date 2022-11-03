@@ -14,6 +14,9 @@ def get_options():
                                      prog='updateDB')
     parser.add_argument('--force', help='Force overwrite.', required=False, action='store_true')
     parser.add_argument('--recompile', help='Only make the blast databases again (without redownloading files).', required=False, action='store_true')
+    parser.add_argument('--keepall',
+                    'Only make the blast databases again (without redownloading files).',
+                    required=False, action='store_true')
 
     return parser.parse_args()
 
@@ -206,10 +209,11 @@ def main():
     logging.info('Done!')
 
     # Removing REBASE files
-    removeFile(rf.get_data('All.txt'))
-    removeFile(rf.get_data('All.faa'))
-    removeFile(rf.get_data('Gold.txt'))
-    removeFile(rf.get_data('Gold.faa'))
+    if not args.keepall:
+        removeFile(rf.get_data('All.txt'))
+        removeFile(rf.get_data('All.faa'))
+        removeFile(rf.get_data('Gold.txt'))
+        removeFile(rf.get_data('Gold.faa'))
     for f in glob.glob(rf.get_data('*.tmp')):
         os.remove(f)
 
