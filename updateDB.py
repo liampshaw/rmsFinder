@@ -15,7 +15,7 @@ def get_options():
     parser.add_argument('--force', help='Force overwrite.', required=False, action='store_true')
     parser.add_argument('--recompile', help='Only make the blast databases again (without redownloading files).', required=False, action='store_true')
     parser.add_argument('--keepall',
-                    'Only make the blast databases again (without redownloading files).',
+                    help='Only make the blast databases again (without redownloading files).',
                     required=False, action='store_true')
 
     return parser.parse_args()
