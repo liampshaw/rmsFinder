@@ -185,27 +185,37 @@ def main():
         logging.info('\nExtracting Type II sequences...')
         extractEnzymesSpecifiedType(rf.get_data('All.faa'), ':Type II methyltransferase', rf.get_data('Type_II_MT_nonputative.faa')) # excludes putative
         extractEnzymesSpecifiedType(rf.get_data('All.faa'), ':Type II restriction enzyme', rf.get_data('Type_II_RE_nonputative.faa')) # excludes putative
+        extractEnzymesSpecifiedType(rf.get_data('All.faa'), ':Type IIG restriction enzyme', rf.get_data('Type_IIG_nonputative.faa'))
         extractEnzymesSpecifiedType(rf.get_data('All.faa'), 'Type II methyltransferase', rf.get_data('Type_II_MT_all.faa'))
         extractEnzymesSpecifiedType(rf.get_data('All.faa'), 'Type II restriction enzyme', rf.get_data('Type_II_RE_all.faa'))
+        extractEnzymesSpecifiedType(rf.get_data('All.faa'), 'Type IIG restriction enzyme', rf.get_data('Type_IIG_all.faa'))
+
         logging.info('Done!')
         # Extracting Gold Type II
         logging.info('\nExtracting Gold Type II sequences...')
         extractEnzymesSpecifiedType(rf.get_data('Gold.faa'), 'Type II methyltransferase', rf.get_data('Type_II_MT_gold.faa'))
         extractEnzymesSpecifiedType(rf.get_data('Gold.faa'), 'Type II restriction enzyme', rf.get_data('Type_II_RE_gold.faa'))
+        extractEnzymesSpecifiedType(rf.get_data('Gold.faa'), 'Type IIG restriction enzyme', rf.get_data('Type_IIG_gold.faa'))
         logging.info('Done!')
 
         # Making lookup tables
         writeLookupTables(rf.get_data('Type_II_MT_gold.faa'), rf.get_data('Type_II_MT_nonputative.faa'), rf.get_data('Type_II_MT_all.faa'), rf.get_data('Type_II_MT_dict.txt'))
         writeLookupTables(rf.get_data('Type_II_RE_gold.faa'), rf.get_data('Type_II_RE_nonputative.faa'), rf.get_data('Type_II_RE_all.faa'), rf.get_data('Type_II_RE_dict.txt'))
+        writeLookupTables(rf.get_data('Type_IIG_gold.faa'), rf.get_data('Type_IIG_RE_nonputative.faa'), rf.get_data('Type_IIG_all.faa'), rf.get_data('Type_II_RE_dict.txt'))
 
     # Make blast databases
     logging.info('\nMaking blast databases...')
     makeBlastDB(rf.get_data('Type_II_MT_all.faa'))
     makeBlastDB(rf.get_data('Type_II_RE_all.faa'))
+    makeBlastDB(rf.get_data('Type_IIG_all.faa'))
+
     makeBlastDB(rf.get_data('Type_II_MT_nonputative.faa'))
     makeBlastDB(rf.get_data('Type_II_RE_nonputative.faa'))
+    makeBlastDB(rf.get_data('Type_IIG_nonputative.faa'))
+
     makeBlastDB(rf.get_data('Type_II_MT_gold.faa'))
     makeBlastDB(rf.get_data('Type_II_RE_gold.faa'))
+    makeBlastDB(rf.get_data('Type_IIG_gold.faa'))
     logging.info('Done!')
 
     # Removing REBASE files
