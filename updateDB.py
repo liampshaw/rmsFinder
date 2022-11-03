@@ -201,7 +201,7 @@ def main():
         # Making lookup tables
         writeLookupTables(rf.get_data('Type_II_MT_gold.faa'), rf.get_data('Type_II_MT_nonputative.faa'), rf.get_data('Type_II_MT_all.faa'), rf.get_data('Type_II_MT_dict.txt'))
         writeLookupTables(rf.get_data('Type_II_RE_gold.faa'), rf.get_data('Type_II_RE_nonputative.faa'), rf.get_data('Type_II_RE_all.faa'), rf.get_data('Type_II_RE_dict.txt'))
-        writeLookupTables(rf.get_data('Type_IIG_gold.faa'), rf.get_data('Type_IIG_RE_nonputative.faa'), rf.get_data('Type_IIG_all.faa'), rf.get_data('Type_II_RE_dict.txt'))
+        writeLookupTables(rf.get_data('Type_IIG_gold.faa'), rf.get_data('Type_IIG_nonputative.faa'), rf.get_data('Type_IIG_all.faa'), rf.get_data('Type_II_RE_dict.txt'))
 
     # Make blast databases
     logging.info('\nMaking blast databases...')
