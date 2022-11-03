@@ -238,7 +238,7 @@ def main():
         format = "%d/%m/%Y %H:%M:%S"
         with open(rf.get_data('download.log'), 'w') as f:
             f.write('Databases last recompiled on {}\n'.format(now.strftime(format)))
-            f.write('(Last downloaded on '+download_date+'(\n')
+            f.write('after original files last downloaded on '+download_date+'\n')
     else:
         with open(rf.get_data('download.log'), 'w') as f:
             now = datetime.datetime.now()
