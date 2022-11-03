@@ -185,17 +185,17 @@ def main():
         logging.info('\nExtracting Type II sequences...')
         extractEnzymesSpecifiedType(rf.get_data('All.faa'), ':Type II methyltransferase', rf.get_data('Type_II_MT_nonputative.faa')) # excludes putative
         extractEnzymesSpecifiedType(rf.get_data('All.faa'), ':Type II restriction enzyme', rf.get_data('Type_II_RE_nonputative.faa')) # excludes putative
-        extractEnzymesSpecifiedType(rf.get_data('All.faa'), ':Type IIG restriction enzyme', rf.get_data('Type_IIG_nonputative.faa'))
+        extractEnzymesSpecifiedType(rf.get_data('All.faa'), ':Type IIG restriction enzyme/methyltransferase', rf.get_data('Type_IIG_nonputative.faa'))
         extractEnzymesSpecifiedType(rf.get_data('All.faa'), 'Type II methyltransferase', rf.get_data('Type_II_MT_all.faa'))
         extractEnzymesSpecifiedType(rf.get_data('All.faa'), 'Type II restriction enzyme', rf.get_data('Type_II_RE_all.faa'))
-        extractEnzymesSpecifiedType(rf.get_data('All.faa'), 'Type IIG restriction enzyme', rf.get_data('Type_IIG_all.faa'))
+        extractEnzymesSpecifiedType(rf.get_data('All.faa'), 'Type IIG restriction enzyme/methyltransferase', rf.get_data('Type_IIG_all.faa'))
 
         logging.info('Done!')
         # Extracting Gold Type II
         logging.info('\nExtracting Gold Type II sequences...')
         extractEnzymesSpecifiedType(rf.get_data('Gold.faa'), 'Type II methyltransferase', rf.get_data('Type_II_MT_gold.faa'))
         extractEnzymesSpecifiedType(rf.get_data('Gold.faa'), 'Type II restriction enzyme', rf.get_data('Type_II_RE_gold.faa'))
-        extractEnzymesSpecifiedType(rf.get_data('Gold.faa'), 'Type IIG restriction enzyme', rf.get_data('Type_IIG_gold.faa'))
+        extractEnzymesSpecifiedType(rf.get_data('Gold.faa'), 'Type IIG restriction enzyme/methyltransferase', rf.get_data('Type_IIG_gold.faa'))
         logging.info('Done!')
 
         # Making lookup tables
