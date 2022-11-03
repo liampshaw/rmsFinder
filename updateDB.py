@@ -229,11 +229,21 @@ def main():
 
     logging.info('\nDatabases all downloaded, rmsFinder is ready to run. \n\nRemember to cite REBASE.\n\nRoberts, R.J., Vincze, T., Posfai, J., Macelis, D.\nREBASE-a database for DNA restriction and modification: enzymes, genes and genomes.\nNucleic Acids Res. 43: D298-D299 (2015).\ndoi: 10.1093/nar/gku1046\nOfficial REBASE web site - http://rebase.neb.com')
 
-    # Record when files where downloaded
-    with open(rf.get_data('download.log'), 'w') as f:
+    # Record when files were downloaded
+    download_date = ""
+    if args.recompile:
+        with open(rf.get_data('download.log'), 'r') as f:
+            download_date = f.readline().strip("\n'").split(' ')[4]
         now = datetime.datetime.now()
         format = "%d/%m/%Y %H:%M:%S"
-        f.write('Databases last downloaded on {}\n'.format(now.strftime(format)))
+        with open(rf.get_data('download.log'), 'w') as f:
+            f.write('Databases last recompiled on {}\n'.format(now.strftime(format)))
+            f.write('(Last downloaded on '+download_date+'(\n')
+    else:
+        with open(rf.get_data('download.log'), 'w') as f:
+            now = datetime.datetime.now()
+            format = "%d/%m/%Y %H:%M:%S"
+            f.write('Databases last recompiled on {}\n'.format(now.strftime(format)))
 
 
 if __name__ == "__main__":
