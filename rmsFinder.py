@@ -23,7 +23,7 @@ def get_options():
     input_group.add_argument('--fasta', help='Input file is fasta format', action='store_true', default=False)
     input_group.add_argument('--panacotafasta', help='Input file is protein fasta output from panacota', action='store_true', default=False)
     parser.add_argument('--db', help='Which database to use: gold, regular, all (default: gold)', required=False, default='gold')
-    parser.add_argument('--mode', help='Mode of running: RMS, MT, RE, MT+RE (default: RMS)', required=False, default='RMS')
+    parser.add_argument('--mode', help='Mode of running: RMS, MT, RE, MT+RE, IIG (default: RMS)', required=False, default='RMS')
     parser.add_argument('--dontcollapse', help='Whether to keep all blast hits for proteins rather than just their top hit (default: False)', action='store_true')
     parser.add_argument('--hmm', help='Which HMM to use', required=False, default='oliveira')
     parser.add_argument('--forceprocessing', help='Forces processing of the input', required=False, action='store_true')
@@ -320,8 +320,8 @@ def predictRMS(hits_MT, hits_RE, with_position, position_threshold=5, mt_thresho
     hits_MT.index = hits_MT['qseqid']
     hits_RE.index = hits_RE['qseqid']
     # Subset to similarities for adding to dataframe
-    
-  
+
+
     # Check for any intersection of targets
     if with_position==True:
         # Subset to relevant columns (with genomic location - assumes all passed in correctly which is a somewhat dangerous assumption)
@@ -329,7 +329,7 @@ def predictRMS(hits_MT, hits_RE, with_position, position_threshold=5, mt_thresho
         hits_MT_subset.columns = ['qseqid', 'hit_MT', 'sim_MT', 'loc_MT']
         hits_RE_subset = hits_RE[['qseqid', 'sseqid', 'similarity', 'genomic_location']]
         hits_RE_subset.columns = ['qseqid', 'hit_RE', 'sim_RE', 'loc_RE']
-        
+
         target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
         if len(target_overlap) > 0:
             predicted_rms = []
@@ -533,7 +533,7 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
         return(blast_hits_RE)
     blast_hits_RE_filt = blast_hits_RE[blast_hits_RE['coverage_threshold_met']==True]
     logging.info('  (blast_cov_filtered) %d protein-REase hits.' % len(blast_hits_RE_filt))
-    
+
     # Add genomic position, if requested
     if with_position==True and len(blast_hits_RE_filt)>0:
         counter_dict = parseCounterPreparedFasta(proteome_fasta)
@@ -592,14 +592,17 @@ def main():
         logging.info('REBASE database: gold.')
         MT_db = 'Type_II_MT_gold.faa'
         RE_db = 'Type_II_RE_gold.faa'
+        IIG_db = 'Type_IIG_gold.faa'
     elif args.db=='nonputative':
         logging.info('REBASE database: nonputative.')
         MT_db = 'Type_II_MT_nonputative.faa'
         RE_db = 'Type_II_RE_nonputative.faa'
+        IIG_db = 'Type_IIG_nonputative.faa'
     elif args.db=='all':
         logging.info('REBASE database: all.')
         MT_db = 'Type_II_MT_all.faa'
         RE_db = 'Type_II_RE_all.faa'
+        IIG_db = 'Type_IIG_all.faa'
     else:
         logging.info('ERROR: did not recognise db argument. Choose from: gold, nonputative, all')
         return
@@ -617,7 +620,7 @@ def main():
         proteome_fasta = makeTmpFile(panacota_file,'faa')
         parsePanacota(panacota_file, proteome_fasta) # Make fasta file the way we like it
         include_position = True
-    
+
     # Check proteome fasta
     with open(proteome_fasta, 'r') as f:
         first_line = f.readline()
@@ -657,13 +660,13 @@ def main():
             RE_hits.to_csv(output+'_RE.csv', index=False, float_format="%.3f")
         else:
             pd.DataFrame(None).to_csv(output+'_RE.csv', index=False)
-            logging.info('  No MTase hits.')
+            logging.info('  No REase hits.')
         logging.info('Finished searching for REases.')
 
     if mode=='RMS': # Predict RMS
         logging.info('\nPredicting RMS based on MTase and REase presence...')
         rms_predictions = None
-        if (MT_hits is None): 
+        if (MT_hits is None):
             pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
             logging.info('Predicted no Type II R-M systems.')
         elif (RE_hits is None):
@@ -688,6 +691,17 @@ def main():
             else:
                 pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
                 logging.info('Predicted no Type II R-M systems.')
+
+    if mode=='IIG':
+        # Run in IIG Mode
+        if args.hmm=='tesson':
+            IIG_hmm = get_data('defense-finder/Type_IIG.hmm')
+        else:
+            IIG_hmm = False
+        IIG_hits = searchREasesTypeII(proteome_fasta, with_position=include_position, collapse=collapse_hits, REase_db=IIG_db, RE_lookup='Type_IIG_dict.txt', hmm=IIG_hmm)
+        if IIG_hits is not None:
+            IIG_hits.to_csv(output+'_IIG.csv', index=False, float_format="%.3f")
+
     if os.path.exists(proteome_fasta) and args.fasta!=True:
         os.remove(proteome_fasta) # Remove the proteome fasta we made, if indeed we made it
 
