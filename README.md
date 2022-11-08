@@ -1,8 +1,8 @@
 # rmsFinder
 
-A tool for finding Type II restriction-modification systems (RMS) in bacterial genomes and predicting their target sequences. 
+A tool for finding Type II restriction-modification systems (RMS) in bacterial genomes and predicting their target sequences.
 
-Given a fasta file of protein sequences, `rmsFinder` will search these proteins against the REBASE database to identify Type II RMS enzymes that are present, then try to predict their target sequences. This can be done at different stringencies of evidence. 
+Given a fasta file of protein sequences, `rmsFinder` will search these proteins against the REBASE database to identify Type II RMS enzymes that are present, then try to predict their target sequences. This can be done at different stringencies of evidence.
 
 Type II RMS usually consist of a methytransferase (MTase) and a restriction enzyme (REase) with the same target specificity, usually located next to each other in the genome. Homologs can have relatively low similarities (~50\%) and still recognise the same target sequence.
 
@@ -15,9 +15,9 @@ The workflow is inspired by the methodology in the following paper:
 P. H. Oliveira, M. Touchon, E. P. C. Rocha  
 Regulation of genetic flux between bacteria by restriction–modification systems  
 *PNAS* 113 (20) 5658-5663 (2016)  
-doi: [https://doi.org/10.1073/pnas.1603257113](10.1073/pnas.1603257113)
+doi: [10.1073/pnas.1603257113](https://doi.org/10.1073/pnas.1603257113)
 
-Briefly, `rmsFinder` takes a file of protein sequences as input. It searches for putative Type II MTases using HMMs. One can specify either the HMMs produced and curated by Pedro Oliveira, available [https://github.com/oliveira-lab/RMS/tree/master/RM_HMMs](here) (`hmm oliveira`) or those produced by Tesson et al. for [https://github.com/mdmparis/defense-finder-models/tree/master/profiles](DefenseFinder) (`--hmm tesson`). It then searches for putative Type II REases using blastp (e<0.001) against REBASE sequences (because Type II REases diverge rapidly, producing poor MSAs that are not good for building HMMs). 
+Briefly, `rmsFinder` takes a file of protein sequences as input. It searches for putative Type II MTases using HMMs. One can specify either the HMMs produced and curated by Pedro Oliveira, available [here](https://github.com/oliveira-lab/RMS/tree/master/RM_HMMs) (`hmm oliveira`) or those produced by Tesson et al. for [DefenseFinder](https://github.com/mdmparis/defense-finder-models/tree/master/profiles) (`--hmm tesson`: using files for Type II [MTases](https://github.com/mdmparis/defense-finder-models/blob/master/profiles/RM_Type_II__Type_II_MTases.hmm), [REases](https://github.com/mdmparis/defense-finder-models/blob/master/profiles/RM_Type_II__Type_II_REases.hmm), and [IIG](https://raw.githubusercontent.com/mdmparis/defense-finder-models/master/profiles/RM_Type_IIG__Type_IIG.hmm) ). It then searches for putative Type II REases using blastp (e<0.001) against REBASE sequences (because Type II REases diverge rapidly, producing poor MSAs that are not good for building HMMs).
 
 `rmsFinder` then matches these putative MTases or REases to existing REBASE proteins. If the protein similarity is greater than some user-defined thresholds (defaults: 55% for MTases, 50% for REases), the recognition sequence (RS) of the putative protein is predicted to be the same as the matched protein. Finally, if there exists within the genome a Type II MTase and REase recognising the same RS within 4 or fewer genes of each other, `rmsFinder` predicts that a Type II RMS recognising that RS is present in the genome. Output files include a list of all putative MTases, REases, and RMS.  
 
@@ -94,7 +94,7 @@ Alternatively, you can provide a protein fasta. In this case, `rmsFinder` will p
 
 `--dontcollapse`: The default is to keep only the top blast hit for a protein. However, it is sometimes useful to inspect all the hits that meet the threshold for a given protein.
 
-`--hmm`: by default uses Oliveira HMMs. However, more recent HMMs can be used with [https://github.com/mdmparis/defense-finder-models/tree/master/profiles](DefenseFinder) HMMs for Type II REases and MTases can be used with `--hmm tesson`, which may recover more systems for some clades. 
+`--hmm`: by default uses Oliveira HMMs. However, more recent HMMs can be used with [https://github.com/mdmparis/defense-finder-models/tree/master/profiles](DefenseFinder) HMMs for Type II REases and MTases can be used with `--hmm tesson`, which may recover more systems for some clades.
 
 ### Thresholds
 
