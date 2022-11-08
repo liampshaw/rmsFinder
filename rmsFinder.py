@@ -448,7 +448,7 @@ def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
         logging.info('  (blast) %d MTase-protein hits.' % len(blast_hits_MT))
         # Filter coverage threshold
         blast_hits_MT = blast_hits_MT.assign(coverage_threshold_met=list(blast_hits_MT['length'] > coverage_threshold*blast_hits_MT['qlen'])) # Condition of 50% coverage as in Oliveira 2016. # TODO - decide if this additional threshold is needed
-        logging.info('  (blast_cov_filtered) %d protein-MTase hits.' % len(blast_hits_MT))
+        logging.info('  (blast_cov_filtered) %d protein-REBASE hits.' % len(blast_hits_MT))
         if blast_hits_MT is None:
             return
 
@@ -480,7 +480,7 @@ def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
         else:
             return(blast_hits_MT)
 
-def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, REase_db='protein_seqs_Type_II_REases.faa', RE_lookup='Type_II_RE_dict.txt', hmm=False):
+def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.001, coverage_threshold=0.5, collapse=True, REase_db='protein_seqs_Type_II_REases.faa', RE_lookup='Type_II_RE_dict.txt', hmm=False, IIG=False):
     '''Searches a file of proteins against all known REases.
     Args:
         proteome_fasta (str)
@@ -495,17 +495,20 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
         blast_hits_collapse (DataFrame)
             DataFrame of best hits, one row per protein
     '''
+    enzyme_name = 'REases'
+    if IIG==True:
+        enzyme_name = 'IIG RE/MTases'
     # Blasting for REases
     REase_fasta = get_data(REase_db)
     REase_blastdb = get_data('db/'+REase_db)
 
     if hmm is not False:
         hmm_dict_RE = searchHMM(proteome_fasta, hmm)
-        logging.info('  (hmm_raw) %d proteins matched REases.' % len(hmm_dict_RE))
+        logging.info('  (hmm_raw) %d proteins matched %s.' % (len(hmm_dict_RE), enzyme_name))
 
         # Filter hits
         hits_RE_filt = {k:v for k,v in hmm_dict_RE.items() if float(v[3])<evalue_threshold}
-        logging.info('  (hmm_evalue_filtered) %d proteins matched REases.' % len(hits_RE_filt))
+        logging.info('  (hmm_evalue_filtered) %d proteins matched %s.' % (len(hits_RE_filt), enzyme_name))
         # Subset only the hits out from the proteome
         tmp_fasta = makeTmpFile(proteome_fasta,'_RE.faa')
         subsetFasta(proteome_fasta, list(hits_RE_filt.keys()), tmp_fasta)
@@ -528,11 +531,11 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
         return(blast_hits_RE)
     # Filter out hits
     blast_hits_RE = blast_hits_RE.assign(coverage_threshold_met=list(blast_hits_RE['length'] > coverage_threshold*blast_hits_RE['qlen'])) # Condition of 50% coverage as in Oliveira 2016. # TODO - decide if this additional threshold is needed
-    logging.info('  (blast_raw) %d protein-REase hits.' % len(blast_hits_RE))
+    logging.info('  (blast_raw) %d protein-REBASE hits.' % len(blast_hits_RE))
     if blast_hits_RE is None:
         return(blast_hits_RE)
     blast_hits_RE_filt = blast_hits_RE[blast_hits_RE['coverage_threshold_met']==True]
-    logging.info('  (blast_cov_filtered) %d protein-REase hits.' % len(blast_hits_RE_filt))
+    logging.info('  (blast_cov_filtered) %d protein-REBASE hits.' % len(blast_hits_RE_filt))
 
     # Add genomic position, if requested
     if with_position==True and len(blast_hits_RE_filt)>0:
@@ -558,7 +561,7 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
     # Collapse the table to best hits
     if collapse==True and len(blast_hits_RE)>0:
         blast_hits_collapse = collapseBestHits(blast_hits_RE)
-        logging.info('  (blast_filtered) %d putative REases.' % len(blast_hits_collapse))
+        logging.info('  (blast_filtered) %d putative %s.' % (len(blast_hits_collapse), enzyme_name))
 
         return(blast_hits_collapse)
     else:
@@ -639,7 +642,7 @@ def main():
                     return
 
 
-    if mode=='RMS' or 'MT' in mode: # Search for MTases
+    if 'RMS' in mode or 'MT' in mode: # Search for MTases
         logging.info('\nSearching for MTases...')
         MT_hits = searchMTasesTypeII(proteome_fasta, include_position, collapse=collapse_hits, MTase_db=MT_db, MT_lookup='Type_II_MT_dict.txt', hmm=MTase_hmm)
         if MT_hits is not None:
@@ -649,7 +652,7 @@ def main():
             logging.info('  No MTase hits.')
         logging.info('Finished searching for MTases.')
 
-    if mode=='RMS' or 'RE' in mode: # Search for REases
+    if 'RMS' in mode or 'RE' in mode: # Search for REases
         logging.info('\nSearching for REases...')
         if args.hmm=='tesson':
             RE_hmm = get_data('defense-finder/Type_II_REases.hmm')
@@ -663,22 +666,22 @@ def main():
             logging.info('  No REase hits.')
         logging.info('Finished searching for REases.')
 
-    if mode=='RMS': # Predict RMS
+    if 'RMS' in mode: # Predict RMS
         logging.info('\nPredicting RMS based on MTase and REase presence...')
         rms_predictions = None
         if (MT_hits is None):
             pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
-            logging.info('Predicted no Type II R-M systems.')
+            logging.info('Predicted no Type II R-M systems.\n')
         elif (RE_hits is None):
             pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
-            logging.info('Predicted no Type II R-M systems.')
+            logging.info('Predicted no Type II R-M systems.\n')
         else:
             if len(MT_hits)==0:
                 pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
-                logging.info('Predicted no Type II R-M systems.')
-            if len(RE_hits)==0:
+                #logging.info('Predicted no Type II R-M systems.')
+            elif len(RE_hits)==0:
                 pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
-                logging.info('Predicted no Type II R-M systems.')
+                #logging.info('Predicted no Type II R-M systems.')
             if len(MT_hits)>0 and len(RE_hits)>0: # check some hits exist
                 rms_predictions = predictRMS(MT_hits, RE_hits, with_position=include_position)
             if rms_predictions is not None:
@@ -687,20 +690,25 @@ def main():
                     rms_predictions.to_csv(output+'_RMS.csv', index=False, float_format="%.3f")
                 else:
                     pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
-                    logging.info('Predicted no Type II R-M systems.')
+                    logging.info('Predicted no Type II R-M systems.\n')
             else:
                 pd.DataFrame(None).to_csv(output+'_RMS.csv', index=False)
                 logging.info('Predicted no Type II R-M systems.')
 
-    if mode=='IIG':
+    if 'IIG' in mode:
         # Run in IIG Mode
         if args.hmm=='tesson':
             IIG_hmm = get_data('defense-finder/Type_IIG.hmm')
         else:
             IIG_hmm = False
-        IIG_hits = searchREasesTypeII(proteome_fasta, with_position=include_position, collapse=collapse_hits, REase_db=IIG_db, RE_lookup='Type_IIG_dict.txt', hmm=IIG_hmm)
+        IIG_hits = searchREasesTypeII(proteome_fasta, with_position=include_position,
+                                        collapse=collapse_hits, REase_db=IIG_db,
+                                        RE_lookup='Type_IIG_dict.txt', hmm=IIG_hmm,
+                                        IIG=True)
         if IIG_hits is not None:
             IIG_hits.to_csv(output+'_IIG.csv', index=False, float_format="%.3f")
+        logging.info('Finished searching for IIG RE/MTases.')
+
 
     if os.path.exists(proteome_fasta) and args.fasta!=True:
         os.remove(proteome_fasta) # Remove the proteome fasta we made, if indeed we made it
