@@ -1,6 +1,7 @@
 import pandas as pd
 from Bio import SeqIO
 from Bio import Align
+from Bio.Align import substitution_matrices
 import itertools as iter
 import re
 import subprocess
@@ -252,20 +253,33 @@ def getRS(queries, fasta_file):
     rec_seqs = [rec_seq.split(':')[1] for rec_seq in rec_seqs]
     return(rec_seqs)
 
-def globalSimilarity(seq_a, seq_b):
-    '''Returns the optimal global alignment score for two sequences.
+def globalPercIdentity(seq_a, seq_b):
+    '''Returns the optimal global percentage identity for two sequences.
     Args:
         seq_a, seq_b (str)
             The sequences to align
 
     Returns:
-        pident (float)
-            The % similarity score (using the length of the shortest sequence)
+        global_pident (float)
+            The % identity score (using the length of the shortest sequence)
     '''
+    blosum62 = substitution_matrices.load('BLOSUM62')
     aligner = Align.PairwiseAligner()
-    global_score = aligner.score(seq_a, seq_b)
-    min_length = min([len(seq_a), len(seq_b)])
-    global_pident = global_score/min_length * 100
+    aligner.substitution_matrix = blosum62
+    aligner.open_gap_score = -10
+    aligner.extend_gap_score = -5
+    aligner.mode = 'global'
+
+    best_global_alignment = aligner.align(seq_a, seq_b)[0]
+    matches = 0
+    # Iterate over the aligned sequences and count matches
+    for (a, b) in zip(best_global_alignment.aligned[0], best_global_alignment.aligned[1]):
+        # In each tuple (a, b), 'a' and 'b' are (start, stop) pairs indicating the aligned regions
+        start_a, stop_a = a
+        start_b, stop_b = b
+        matches += sum(1 for i in range(stop_a - start_a) if seq_a[start_a + i] == seq_b[start_b + i])
+    min_length = min([len(seq_a), len(seq_b)]) # use shortest sequence length for pident calculation
+    global_pident = matches/min_length * 100
     return global_pident
 
 
@@ -314,8 +328,8 @@ def predictRMS(hits_MT, hits_RE, with_position, position_threshold=5, mt_thresho
             Target sequences as keys with MT and RE proteins and positions stored as values
     '''
     # Filter hits based on Oliveira thresholds
-    hits_MT = hits_MT[hits_MT['similarity']>mt_threshold]
-    hits_RE = hits_RE[hits_RE['similarity']>re_threshold]
+    hits_MT = hits_MT[hits_MT['identity']>mt_threshold]
+    hits_RE = hits_RE[hits_RE['identity']>re_threshold]
     # Add index
     hits_MT.index = hits_MT['qseqid']
     hits_RE.index = hits_RE['qseqid']
@@ -325,9 +339,9 @@ def predictRMS(hits_MT, hits_RE, with_position, position_threshold=5, mt_thresho
     # Check for any intersection of targets
     if with_position==True:
         # Subset to relevant columns (with genomic location - assumes all passed in correctly which is a somewhat dangerous assumption)
-        hits_MT_subset = hits_MT[['qseqid', 'sseqid', 'similarity', 'genomic_location']]
+        hits_MT_subset = hits_MT[['qseqid', 'sseqid', 'identity', 'genomic_location']]
         hits_MT_subset.columns = ['qseqid', 'hit_MT', 'sim_MT', 'loc_MT']
-        hits_RE_subset = hits_RE[['qseqid', 'sseqid', 'similarity', 'genomic_location']]
+        hits_RE_subset = hits_RE[['qseqid', 'sseqid', 'identity', 'genomic_location']]
         hits_RE_subset.columns = ['qseqid', 'hit_RE', 'sim_RE', 'loc_RE']
 
         target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
@@ -367,9 +381,9 @@ def predictRMS(hits_MT, hits_RE, with_position, position_threshold=5, mt_thresho
             return(None)
     elif with_position==False:
         # Subset to relevant columns
-        hits_MT_subset = hits_MT[['qseqid', 'sseqid', 'similarity']]
+        hits_MT_subset = hits_MT[['qseqid', 'sseqid', 'identity']]
         hits_MT_subset.columns = ['qseqid', 'hit_MT', 'sim_MT']
-        hits_RE_subset = hits_RE[['qseqid', 'sseqid', 'similarity']]
+        hits_RE_subset = hits_RE[['qseqid', 'sseqid', 'identity']]
         hits_RE_subset.columns = ['qseqid', 'hit_RE', 'sim_RE']
         target_overlap = set(hits_MT['target']).intersection(set(hits_RE['target']))
         if len(target_overlap) > 0:
@@ -465,7 +479,7 @@ def searchMTasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
                                                 genomic_location=[re.sub('location\\=', '', counter_dict[x][3]) for x in blast_hits_MT['qseqid']])
 
         # Add the global similarity of the best hit. Need to have the sequences available
-        blast_hits_MT['similarity'] = blast_hits_MT.apply(lambda row : globalSimilarity(str(protein_seqs[row['qseqid']].seq),
+        blast_hits_MT['identity'] = blast_hits_MT.apply(lambda row : globalPercIdentity(str(protein_seqs[row['qseqid']].seq),
                      str(rebase_seqs[row['sseqid']].seq)), axis = 1)
 
         # Add the quality of the hit
@@ -551,7 +565,7 @@ def searchREasesTypeII(proteome_fasta, with_position=False, evalue_threshold=0.0
 
     # Add the global similarity of the best hit. Need to have the sequences available
     if len(blast_hits_RE)>0:
-        blast_hits_RE['similarity'] = blast_hits_RE.apply(lambda row : globalSimilarity(str(protein_seqs[row['qseqid']].seq),
+        blast_hits_RE['identity'] = blast_hits_RE.apply(lambda row : globalPercIdentity(str(protein_seqs[row['qseqid']].seq),
                      str(rebase_seqs[row['sseqid']].seq)), axis = 1)
 
         # Add the quality of the hit
