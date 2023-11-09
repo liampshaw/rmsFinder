@@ -66,6 +66,7 @@ optional arguments:
   --genbank        Input file is genbank format
   --fasta          Input file is fasta format
   --panacotafasta  Input file is protein fasta output from panacota
+  --transcdsfasta  Input file is a translated CDS fasta e.g. as downloaded from NCBI
   --db DB          Which database to use: gold, regular, all (default: gold)
   --mode MODE      Mode of running: RMS, MT, RE, MT+RE (default: RMS)
   --dontcollapse   Whether to keep all blast hits for proteins rather than just their
