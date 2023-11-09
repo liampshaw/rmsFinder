@@ -23,6 +23,7 @@ def get_options():
     input_group.add_argument('--genbank', help='Input file is genbank format', action='store_true', default=False) # either genbank, fasta, or panacotafasta, but not both.
     input_group.add_argument('--fasta', help='Input file is fasta format', action='store_true', default=False)
     input_group.add_argument('--panacotafasta', help='Input file is protein fasta output from panacota', action='store_true', default=False)
+    input_group.add_argument('--transcdsfasta', help='Input file is translated CDS fasta from NCBI', action='store_true', default=False)
     parser.add_argument('--db', help='Which database to use: gold, regular, all (default: gold)', required=False, default='gold')
     parser.add_argument('--mode', help='Mode of running: RMS, MT, RE, MT+RE, IIG (default: RMS)', required=False, default='RMS')
     parser.add_argument('--dontcollapse', help='Whether to keep all blast hits for proteins rather than just their top hit (default: False)', action='store_true')
@@ -240,6 +241,33 @@ def parsePanacota(panacota_fasta_file, panacota2fasta_output):
                 record_type = 'plasmid'
             counter = int(re.sub('.*_', '', protein_id))
             record_name = re.sub('_.*', '', protein_id)[:-1]
+            f.write('>%s %s %s %s location=%s product="%s"\n%s\n' % (protein_id, record_name, counter, record_type,'unknown', 'unknown', str(record.seq)))
+            observed_proteins.append(protein_id)
+    return
+
+def parseNCBITranslatedCDSFasta(translated_cds_fasta_file, ncbi2fasta_output):
+    '''Parses a NCBI translated CDS fasta file into a fasta of proteins formatted the expected way for rmsFinder.
+    Args:
+        translated_cds_fasta_file (str)
+            NCBI protein file of translated CDS (_translated_cds.faa)
+        ncbi2fasta_output (str)
+            Output fasta file
+    Returns:
+        None
+    '''
+    protein_dict = {}
+    with open(ncbi2fasta_output, 'w') as f:
+        observed_proteins = []
+        for record in SeqIO.parse(translated_cds_fasta_file, 'fasta'): # there can be multiple records
+            protein_id = record.name
+            protein_description = record.description
+            record_type = 'unknown'
+            if 'chromosome' in protein_description:
+                record_type = 'chromosome'
+            elif 'plasmid' in protein_description:
+                record_type = 'plasmid'
+            counter = int(re.sub('.*_', '', protein_id))
+            record_name = re.sub('_prot.*', '', protein_id)
             f.write('>%s %s %s %s location=%s product="%s"\n%s\n' % (protein_id, record_name, counter, record_type,'unknown', 'unknown', str(record.seq)))
             observed_proteins.append(protein_id)
     return
@@ -636,6 +664,11 @@ def main():
         panacota_file = str(args.input[0])
         proteome_fasta = makeTmpFile(panacota_file,'faa')
         parsePanacota(panacota_file, proteome_fasta) # Make fasta file the way we like it
+        include_position = True
+    elif args.transcdsfasta==True:
+        cds_fasta = str(args.input[0])
+        proteome_fasta = makeTmpFile(cds_fasta,'faa')
+        parseNCBITranslatedCDSFasta(cds_fasta, proteome_fasta)
         include_position = True
 
     # Check proteome fasta
